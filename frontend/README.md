@@ -36,3 +36,12 @@ npm run dev
 ```sh
 npm run build
 ```
+
+
+
+
+
+Implementation idea for altering website files.
+Base user websites are stored in the backend as JSON files. The json files are read
+dynamically and turned into the templates that they need to be. The json files will
+contain styling and prop data
