@@ -42,8 +42,18 @@ class Subscription(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     last_modified: Mapped[datetime] = mapped_column(onupdate=func.now(), server_default.now())
 
+class Duration(enum.Enum):
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
+class Plan(Base):
+    __tablename__ = "plans"
 
-
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    price_in_cents: Mapped[int]
+    duration: Mapped[Duration] 
+    description: Mapped[str]
+    stripe_plan_id: Mapped[str]
 
     
     
