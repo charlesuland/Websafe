@@ -1,22 +1,31 @@
-from sqlalchemy import Column, Integer, String
-from .database import Base
+from sqlalchemy import JSON, ForeignKey, func, Boolean, DateTime
+from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
+import enum
+from datetime import datetime
+
+
+class Base(DeclarativeBase):
+    __abstract__ = True
+    id: Mapped[int] = mapped_column(primary_key=True)
+    is_active: Mapped[bool] = mapped_column(Boolean)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
 
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-
     email: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
 
     hash_password: Mapped[str] = mapped_column(nullable=False)
-
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    last_modified: Mapped[datetime] = mapped_column(onupdate=func.now(), server_default.now())
+    first_name: Mapped[str]
+    last_name: Mapped[str]
 
 
 class Subscription(Base):
     __tablename__ = "subscriptions"
-    id: Mapped[int] = mapped_column(primary_key=True)
     plan_id: Mapped[int] = mapped_column(ForeignKey("plans.id"))
 
     class SubscriptionStatus(enum.Enum):
@@ -26,36 +35,88 @@ class Subscription(Base):
         PAST_DUE = "past_due"
 
     # when you are going to be searching by something, make its index true
-    status: Mapped[SubscriptionStatus] = mapped_column(index=True, default=SubscriptionStatus.ACTIVE)
+    status: Mapped[SubscriptionStatus] = mapped_column(
+        index=True, default=SubscriptionStatus.ACTIVE
+    )
     current_period_start: Mapped[datetime]
-    current_period_end: Mapped[datetime] mapped_column(index=True)
-    is_active: Mapped[boolean] = mapped_column(default=True)
+    current_period_end: Mapped[datetime] = mapped_column(index=True)
+    is_active: Mapped[bool] = mapped_column(default=True)
     stripe_id: Mapped[str] = mapped_column(unique=True, nullable=True)
     canceled_at: Mapped[datetime]
     trial_start: Mapped[datetime]
     trial_end: Mapped[datetime]
 
-    #user.id for database and actual sql purposes
+    # user.id for database and actual sql purposes
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     # user for python purposes
-    user: Mapped["User"] = relationship("User", back_populates="subscription")
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    last_modified: Mapped[datetime] = mapped_column(onupdate=func.now(), server_default.now())
+    # user: Mapped["User"] = relationship("User", back_populates="subscription")
+
 
 class Duration(enum.Enum):
     MONTHLY = "monthly"
     YEARLY = "yearly"
+
+
 class Plan(Base):
     __tablename__ = "plans"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
     price_in_cents: Mapped[int]
-    duration: Mapped[Duration] 
+    duration: Mapped[Duration]
     description: Mapped[str]
     stripe_plan_id: Mapped[str]
 
-    
-    
+
+# need to give everything an is_active and update_at and created_at
 
 
+class Vendor(Base):
+    __tablename__ = "vendors"
+    business_name: Mapped[str]
+
+
+class Project(Base):
+    __tablename__ = "projects"
+
+    name: Mapped[str] = mapped_column(index=True)
+    owner: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    is_live: Mapped[bool] = mapped_column(default=False)
+    last_published: Mapped[datetime]
+
+
+class ProjectPage(Base):
+    __tablename__ = "projects_pages"
+
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    name: Mapped[str] = mapped_column(index=True)
+
+
+class PageComponent(Base):
+    __tablename__ = "page_components"
+
+    project_id: Mapped[int] = mapped_column(ForeignKey("project_pages.id"), index=True)
+    layout: Mapped[dict] = mapped_column(JSON)
+
+
+class ProjectProduct(Base):
+    __tablename__ = "project_products"
+
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
+
+    pass
+
+
+class ProjectProductVariation(Base):
+    __tablename__ = "project_product_variations"
+
+    product_id: Mapped[int] = mapped_column(ForeignKey("project_products.id"))
+
+    image_file_name: Mapped[str]
+
+
+class ProjectOrder(Base):
+    pass
+
+
+class ProjectOrderItem(Base):
+    pass
