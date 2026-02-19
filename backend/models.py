@@ -68,11 +68,17 @@ class Plan(Base):
 
 
 # need to give everything an is_active and update_at and created_at
-
+# How to keep bank information
 
 class Vendor(Base):
     __tablename__ = "vendors"
     business_name: Mapped[str]
+    adress:
+    email:
+    phone:
+    stripe_id:
+    
+
 
 
 class Project(Base):
@@ -102,6 +108,8 @@ class ProjectProduct(Base):
     __tablename__ = "project_products"
 
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
+    name:
+    description:
 
     pass
 
@@ -110,6 +118,12 @@ class ProjectProductVariation(Base):
     __tablename__ = "project_product_variations"
 
     product_id: Mapped[int] = mapped_column(ForeignKey("project_products.id"))
+    name:
+    description:
+    stock:
+    sale_price:
+    shipping_price:
+
 
     image_file_name: Mapped[str]
 
