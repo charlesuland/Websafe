@@ -122,8 +122,6 @@ class ProjectProduct(Base):
     sale_price: Mapped[int]
     shipping_price: Mapped[int]
 
-    pass
-
 
 class ProjectProductVariation(Base):
     __tablename__ = "project_product_variations"
@@ -140,8 +138,7 @@ class ProjectOrder(Base):
     __tablename__ = "project_orders"
     stripe_id: Mapped[str]
     total_price: Mapped[int]
-
-    pass
+    payment_status: Mapped[bool]
 
 
 class ProjectOrderItem(Base):
@@ -150,18 +147,21 @@ class ProjectOrderItem(Base):
     item: Mapped[int] = mapped_column(ForeignKey("project_product_variations.id"))
     order: Mapped[int] = mapped_column(ForeignKey("project_orders.id"))
 
-    pass
-
 
 class ProjectCustomer(Base):
     __tablename__ = "project_customers"
 
     order: Mapped[int] = mapped_column(ForeignKey("project_orders.id"))
 
+    first_name: Mapped[str]
+    last_name: Mapped[str]
+    phone: Mapped[int]
+    email: Mapped[str]
+
 
 class ProjectCustomerAdress(Base):
-    __tablename__ = "vendor_addresses"
-    vendor: Mapped[int] = mapped_column(ForeignKey("vendors.id"))
+    __tablename__ = "project_customer_addresses"
+    vendor: Mapped[int] = mapped_column(ForeignKey("project_customers.id"))
     house_number: Mapped[int]
     street_name: Mapped[str]
     city: Mapped[str]
