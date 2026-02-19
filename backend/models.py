@@ -70,15 +70,24 @@ class Plan(Base):
 # need to give everything an is_active and update_at and created_at
 # How to keep bank information
 
+
 class Vendor(Base):
     __tablename__ = "vendors"
     business_name: Mapped[str]
-    adress:
-    email:
-    phone:
-    stripe_id:
-    
+    email: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
 
+    phone: Mapped[int]
+    stripe_id: Mapped[str]
+
+
+class VendorAdress(Base):
+    __tablename__ = "vendor_addresses"
+    vendor: Mapped[int] = mapped_column(ForeignKey("vendors.id"))
+    house_number: Mapped[int]
+    street_name: Mapped[str]
+    city: Mapped[str]
+    state: Mapped[str]
+    postal_code: Mapped[int]
 
 
 class Project(Base):
@@ -108,8 +117,10 @@ class ProjectProduct(Base):
     __tablename__ = "project_products"
 
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
-    name:
-    description:
+    name: Mapped[str]
+    description: Mapped[str]
+    sale_price: Mapped[int]
+    shipping_price: Mapped[int]
 
     pass
 
@@ -118,19 +129,41 @@ class ProjectProductVariation(Base):
     __tablename__ = "project_product_variations"
 
     product_id: Mapped[int] = mapped_column(ForeignKey("project_products.id"))
-    name:
-    description:
-    stock:
-    sale_price:
-    shipping_price:
-
+    name: Mapped[str]
+    description: Mapped[str]
+    stock: Mapped[int]
 
     image_file_name: Mapped[str]
 
 
 class ProjectOrder(Base):
+    __tablename__ = "project_orders"
+    stripe_id: Mapped[str]
+    total_price: Mapped[int]
+
     pass
 
 
 class ProjectOrderItem(Base):
+    __tablename__ = "project_order_items"
+
+    item: Mapped[int] = mapped_column(ForeignKey("project_product_variations.id"))
+    order: Mapped[int] = mapped_column(ForeignKey("project_orders.id"))
+
     pass
+
+
+class ProjectCustomer(Base):
+    __tablename__ = "project_customers"
+
+    order: Mapped[int] = mapped_column(ForeignKey("project_orders.id"))
+
+
+class ProjectCustomerAdress(Base):
+    __tablename__ = "vendor_addresses"
+    vendor: Mapped[int] = mapped_column(ForeignKey("vendors.id"))
+    house_number: Mapped[int]
+    street_name: Mapped[str]
+    city: Mapped[str]
+    state: Mapped[str]
+    postal_code: Mapped[int]
