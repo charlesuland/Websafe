@@ -101,7 +101,7 @@ class Project(Base):
     __tablename__ = "projects"
 
     name: Mapped[str] = mapped_column(index=True)
-    owner: Mapped[int] = mapped_column(ForeignKey("vendors.id"), nullable=False)
+    vendor: Mapped[int] = mapped_column(ForeignKey("vendors.id"), nullable=False)
     is_live: Mapped[bool] = mapped_column(default=False)
     last_published: Mapped[datetime]
 
@@ -182,7 +182,7 @@ class ProjectOrderItem(Base):
 
     item: Mapped[int] = mapped_column(ForeignKey("project_product_variations.id"))
     order: Mapped[int] = mapped_column(ForeignKey("project_orders.id"))
-
+    price_at_purchase: Mapped[int]
     tracking_number: Mapped[str]
     shipping_status: Mapped[ShippingStatus] = mapped_column(
         default=ShippingStatus.PENDING
@@ -196,13 +196,13 @@ class ProjectCustomer(Base):
 
     first_name: Mapped[str]
     last_name: Mapped[str]
-    phone: Mapped[int]
+    phone: Mapped[str]
     email: Mapped[str]
 
 
 class ProjectCustomerAdress(Base):
     __tablename__ = "project_customer_addresses"
-    vendor: Mapped[int] = mapped_column(ForeignKey("project_customers.id"))
+    customer: Mapped[int] = mapped_column(ForeignKey("project_customers.id"))
     house_number: Mapped[int]
     street_name: Mapped[str]
     city: Mapped[str]
