@@ -18,7 +18,7 @@ class User(Base):
     __tablename__ = "users"
 
     email: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
-
+    phone: Mapped[str]
     hash_password: Mapped[str] = mapped_column(nullable=False)
     first_name: Mapped[str]
     last_name: Mapped[str]
@@ -104,13 +104,14 @@ class ProjectPage(Base):
 
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
     name: Mapped[str] = mapped_column(index=True)
-
-
-class PageComponent(Base):
-    __tablename__ = "page_components"
-
-    project_id: Mapped[int] = mapped_column(ForeignKey("project_pages.id"), index=True)
     layout: Mapped[dict] = mapped_column(JSON)
+
+
+#class PageComponent(Base):
+#    __tablename__ = "page_components"
+#
+#    page_id: Mapped[int] = mapped_column(ForeignKey("project_pages.id"), index=True)
+#    layout: Mapped[dict] = mapped_column(JSON)
 
 
 class ProjectProduct(Base):
@@ -167,3 +168,13 @@ class ProjectCustomerAdress(Base):
     city: Mapped[str]
     state: Mapped[str]
     postal_code: Mapped[int]
+
+class DraftProjectPage(Base):
+    __tablename__ = "draft_project_pages"
+    project: Mapped[int] = mapped_column(ForeignKey("projects.id"))
+    name: Mapped[str]
+    layout: Mapped[dict] = mapped_column(JSON)
+#class DraftProjectComponents(Base):
+#    __tablename__ = "draft_project_components"
+#    page_id: Mapped[int] = mapped_column(ForeignKey("project_pages.id"), index=True)
+#    layout: Mapped[dict] = mapped_column(JSON)
