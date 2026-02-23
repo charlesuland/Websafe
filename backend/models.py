@@ -22,17 +22,18 @@ class User(Base):
     hash_password: Mapped[str] = mapped_column(nullable=False)
     first_name: Mapped[str]
     last_name: Mapped[str]
+    verified_email: Mapped[bool] = mapped_column(default=False)
 
-
+class SubscriptionStatus(enum.Enum):
+    ACTIVE = "active"
+    CANCELED = "canceled"
+    TRIALING = "trialing"
+    PAST_DUE = "past_due"
 class Subscription(Base):
     __tablename__ = "subscriptions"
     plan_id: Mapped[int] = mapped_column(ForeignKey("plans.id"))
 
-    class SubscriptionStatus(enum.Enum):
-        ACTIVE = "active"
-        CANCELED = "canceled"
-        TRIALING = "trialing"
-        PAST_DUE = "past_due"
+
 
     # when you are going to be searching by something, make its index true
     status: Mapped[SubscriptionStatus] = mapped_column(
@@ -152,6 +153,7 @@ class ProjectOrder(Base):
     stripe_id: Mapped[str]
     total_price: Mapped[int]
     payment_status: Mapped[bool]
+    project: Mapped[int] = mapped_column(ForeignKey("projects.id"))
 
 
 class ProjectOrderItem(Base):
