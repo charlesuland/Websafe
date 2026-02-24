@@ -18,11 +18,26 @@ class User(Base):
     __tablename__ = "users"
 
     email: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
+<<<<<<< HEAD
     phone: Mapped[str]
     hash_password: Mapped[str] = mapped_column(nullable=False)
     first_name: Mapped[str]
     last_name: Mapped[str]
     verified_email: Mapped[bool] = mapped_column(default=False)
+=======
+    email_verified: Mapped[bool] = mapped_column(default=False)
+    hash_password: Mapped[str] = mapped_column(nullable=False)
+    first_name: Mapped[str]
+    last_name: Mapped[str]
+    stripe_customer_id: Mapped[int] = mapped_column(unique=True, nullable=False)
+
+
+class SubscriptionStatus(enum.Enum):
+    ACTIVE = "active"
+    CANCELED = "canceled"
+    TRIALING = "trialing"
+    PAST_DUE = "past_due"
+>>>>>>> 26ba3e0 (more models)
 
 class SubscriptionStatus(enum.Enum):
     ACTIVE = "active"
@@ -33,8 +48,11 @@ class Subscription(Base):
     __tablename__ = "subscriptions"
     plan_id: Mapped[int] = mapped_column(ForeignKey("plans.id"))
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 26ba3e0 (more models)
     # when you are going to be searching by something, make its index true
     status: Mapped[SubscriptionStatus] = mapped_column(
         index=True, default=SubscriptionStatus.ACTIVE
@@ -42,10 +60,11 @@ class Subscription(Base):
     current_period_start: Mapped[datetime]
     current_period_end: Mapped[datetime] = mapped_column(index=True)
     is_active: Mapped[bool] = mapped_column(default=True)
-    stripe_id: Mapped[str] = mapped_column(unique=True, nullable=True)
+    # stripe_id: Mapped[str] = mapped_column(unique=True, nullable=True)
     canceled_at: Mapped[datetime]
     trial_start: Mapped[datetime]
     trial_end: Mapped[datetime]
+    meta: Mapped[dict] = mapped_column(JSON)
 
     # user.id for database and actual sql purposes
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
@@ -66,6 +85,7 @@ class Plan(Base):
     duration: Mapped[Duration]
     description: Mapped[str]
     stripe_plan_id: Mapped[str]
+    currency: Mapped[str] = mapped_column(default="USD")
 
 
 # need to give everything an is_active and update_at and created_at
@@ -79,6 +99,9 @@ class Vendor(Base):
 
     phone: Mapped[int]
     stripe_id: Mapped[str]
+    stripe_connect_id: Mapped[str]
+    payouts_enabled: Mapped[bool] = mapped_column(default=False)
+    requirements_due_for_payment: Mapped[str]
 
 
 class VendorAdress(Base):
@@ -88,7 +111,7 @@ class VendorAdress(Base):
     street_name: Mapped[str]
     city: Mapped[str]
     state: Mapped[str]
-    postal_code: Mapped[int]
+    postal_code: Mapped[str]
 
 
 class Project(Base):
@@ -136,6 +159,8 @@ class ProjectProduct(Base):
     description: Mapped[str]
     sale_price: Mapped[int]
     shipping_price: Mapped[int]
+    currency: Mapped[str] = mapped_column(default="USD")
+    is_published: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class ProjectProductVariation(Base):
@@ -152,9 +177,20 @@ class ProjectProductVariation(Base):
 class ProjectOrder(Base):
     __tablename__ = "project_orders"
     stripe_id: Mapped[str]
-    total_price: Mapped[int]
+    item_price: Mapped[int]
+    shipping_price: Mapped[int]
+    currency: Mapped[str] = mapped_column(default="USD")
     payment_status: Mapped[bool]
     project: Mapped[int] = mapped_column(ForeignKey("projects.id"))
+    platform_fee_cents: Mapped[int]
+    vendor_amount_cents: Mapped[int]
+    meta: Mapped[dict] = mapped_column(JSON)
+
+
+class ShippingStatus(enum.Enum):
+    PENDING = "pending"
+    SHIPPED = "shipped"
+    DELIVERED = "delivered"
 
 
 class ProjectOrderItem(Base):
@@ -162,6 +198,11 @@ class ProjectOrderItem(Base):
 
     item: Mapped[int] = mapped_column(ForeignKey("project_product_variations.id"))
     order: Mapped[int] = mapped_column(ForeignKey("project_orders.id"))
+
+    tracking_number: Mapped[str]
+    shipping_status: Mapped[ShippingStatus] = mapped_column(
+        default=ShippingStatus.PENDING
+    )
 
 
 class ProjectCustomer(Base):
