@@ -80,7 +80,7 @@ class Vendor(Base):
     business_name: Mapped[str]
     email: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
     owner: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    phone: Mapped[int]
+    phone: Mapped[str]
     stripe_id: Mapped[str]
     stripe_connect_id: Mapped[str]
     payouts_enabled: Mapped[bool] = mapped_column(default=False)
