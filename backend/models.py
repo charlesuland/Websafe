@@ -23,7 +23,7 @@ class User(Base):
     hash_password: Mapped[str] = mapped_column(nullable=False)
     first_name: Mapped[str]
     last_name: Mapped[str]
-    stripe_customer_id: Mapped[int] = mapped_column(unique=True, nullable=False)
+    stripe_customer_id: Mapped[str] = mapped_column(unique=True, nullable=False)
 
 
 class SubscriptionStatus(enum.Enum):
@@ -42,7 +42,7 @@ class Subscription(Base):
     )
     current_period_start: Mapped[datetime]
     current_period_end: Mapped[datetime] = mapped_column(index=True)
-    is_active: Mapped[bool] = mapped_column(default=True)
+    # is_active: Mapped[bool] = mapped_column(default=True)
     # stripe_id: Mapped[str] = mapped_column(unique=True, nullable=True)
     canceled_at: Mapped[datetime]
     trial_start: Mapped[datetime]
@@ -81,7 +81,7 @@ class Vendor(Base):
     email: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
     owner: Mapped[int] = mapped_column(ForeignKey("users.id"))
     phone: Mapped[str]
-    stripe_id: Mapped[str]
+    # stripe_id: Mapped[str]
     stripe_connect_id: Mapped[str]
     payouts_enabled: Mapped[bool] = mapped_column(default=False)
     requirements_due_for_payment: Mapped[str]
