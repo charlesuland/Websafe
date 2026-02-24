@@ -101,7 +101,7 @@ class Project(Base):
     __tablename__ = "projects"
 
     name: Mapped[str] = mapped_column(index=True)
-    owner: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    owner: Mapped[int] = mapped_column(ForeignKey("vendors.id"), nullable=False)
     is_live: Mapped[bool] = mapped_column(default=False)
     last_published: Mapped[datetime]
 
