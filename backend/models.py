@@ -18,13 +18,7 @@ class User(Base):
     __tablename__ = "users"
 
     email: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
-<<<<<<< HEAD
     phone: Mapped[str]
-    hash_password: Mapped[str] = mapped_column(nullable=False)
-    first_name: Mapped[str]
-    last_name: Mapped[str]
-    verified_email: Mapped[bool] = mapped_column(default=False)
-=======
     email_verified: Mapped[bool] = mapped_column(default=False)
     hash_password: Mapped[str] = mapped_column(nullable=False)
     first_name: Mapped[str]
@@ -37,22 +31,11 @@ class SubscriptionStatus(enum.Enum):
     CANCELED = "canceled"
     TRIALING = "trialing"
     PAST_DUE = "past_due"
->>>>>>> 26ba3e0 (more models)
 
-class SubscriptionStatus(enum.Enum):
-    ACTIVE = "active"
-    CANCELED = "canceled"
-    TRIALING = "trialing"
-    PAST_DUE = "past_due"
+
 class Subscription(Base):
     __tablename__ = "subscriptions"
     plan_id: Mapped[int] = mapped_column(ForeignKey("plans.id"))
-
-<<<<<<< HEAD
-
-
-=======
->>>>>>> 26ba3e0 (more models)
     # when you are going to be searching by something, make its index true
     status: Mapped[SubscriptionStatus] = mapped_column(
         index=True, default=SubscriptionStatus.ACTIVE
@@ -96,7 +79,7 @@ class Vendor(Base):
     __tablename__ = "vendors"
     business_name: Mapped[str]
     email: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
-
+    owner: Mapped[int] = mapped_column(ForeignKey("users.id"))
     phone: Mapped[int]
     stripe_id: Mapped[str]
     stripe_connect_id: Mapped[str]
@@ -150,6 +133,7 @@ class ProjectPage(Base):
 #         "props": { "padding": "20px" }
 #     }
 #     '''
+
 
 class ProjectProduct(Base):
     __tablename__ = "project_products"
@@ -225,12 +209,15 @@ class ProjectCustomerAdress(Base):
     state: Mapped[str]
     postal_code: Mapped[int]
 
+
 class DraftProjectPage(Base):
     __tablename__ = "draft_project_pages"
     project: Mapped[int] = mapped_column(ForeignKey("projects.id"))
     name: Mapped[str]
     layout: Mapped[dict] = mapped_column(JSON)
-#class DraftProjectComponents(Base):
+
+
+# class DraftProjectComponents(Base):
 #    __tablename__ = "draft_project_components"
 #    page_id: Mapped[int] = mapped_column(ForeignKey("project_pages.id"), index=True)
 #    layout: Mapped[dict] = mapped_column(JSON)
