@@ -71,7 +71,6 @@ class Plan(Base):
     currency: Mapped[str] = mapped_column(default="USD")
 
 
-# need to give everything an is_active and update_at and created_at
 # How to keep bank information
 
 
@@ -112,27 +111,6 @@ class ProjectPage(Base):
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
     name: Mapped[str] = mapped_column(index=True)
     layout: Mapped[dict] = mapped_column(JSON)
-
-
-# class PageComponent(Base):
-#     __tablename__ = "page_components"
-
-#     page_id: Mapped[int] = mapped_column(ForeignKey("project_pages.id"), index=True)
-#     parent_id: Mapped[int] = mapped_column(ForeignKey("page_components.id"), index=True)
-#     position: Mapped[int] = mapped_column(index=True)
-#     component_type: Mapped[str] = mapped_column(index=True)
-#     props: Mapped[dict] = mapped_column(JSON)
-
-#     '''
-#     EXAMPLE OF STORED COMPONENT:
-#     {
-#         "id": 1,
-#         "parent_id": null,
-#         "position": 0,
-#         "component_type": "container",
-#         "props": { "padding": "20px" }
-#     }
-#     '''
 
 
 class ProjectProduct(Base):
@@ -217,7 +195,10 @@ class DraftProjectPage(Base):
     layout: Mapped[dict] = mapped_column(JSON)
 
 
-# class DraftProjectComponents(Base):
-#    __tablename__ = "draft_project_components"
-#    page_id: Mapped[int] = mapped_column(ForeignKey("project_pages.id"), index=True)
-#    layout: Mapped[dict] = mapped_column(JSON)
+class MediaObjectMetadata(Base):
+    __tablename__ = "media_object_metadata"
+
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
+    file_key: Mapped[str]
+    file_type: Mapped[str]
+    file_size_bytes: Mapped[int]
