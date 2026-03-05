@@ -1,63 +1,70 @@
 <script setup>
-    import { VueDraggable } from 'vue-draggable-plus'
-    import { useBuilderStore } from '@/stores/builderStore.js'
-    import ComponentRenderer from '@/components/ComponentRenderer.vue'
+import { VueDraggable } from 'vue-draggable-plus'
+import { useBuilderStore } from '@/stores/builderStore'
+import ComponentRenderer from '@/components/ComponentRenderer.vue'
+import { computed } from 'vue'
 
-    const store = useBuilderStore()
+const store = useBuilderStore()
 
-    function onDrop(event) {
-        const data = event.dataTransfer.getData('component')
-        if (!data) return
+const components = computed({
+  get: () => store.components,
+  set: (val) => store.components = val
+})
 
-        console.log('Dropped data:', data)
+function onDrop(event) {
+  const data = event.dataTransfer.getData('component')
+  if (!data) return
 
-        const component = JSON.parse(data)
+  const component = JSON.parse(data)
 
-        store.addComponent({
-            id: crypto.randomUUID(),
-            type: component.type,
-            props: component.type === 'text' ? { text: 'New Text Block' }
-                : component.type === 'image' ? { src: 'https://via.placeholder.com/150' }
-                : {},
-            children: []
-        })
-    }
+  store.addComponent({
+    id: crypto.randomUUID(),
+    type: component.type,
+    props:
+      component.type === 'text'
+        ? { text: 'New Text Block' }
+        : component.type === 'image'
+        ? { src: 'https://via.placeholder.com/150' }
+        : {},
+    children: []
+  })
+}
 </script>
 
 <template>
-  <div
-    class="canvas"
-    @drop="onDrop"
-    @dragover.prevent
-    @dragenter.prevent
-  >
+  <div class="canvas"
+       @drop="onDrop"
+       @dragover.prevent>
+
     <VueDraggable
-      v-model="store.components">
+      v-model="components"
       item-key="id"
+      tag="div"
       animation="200"
-      ghost-class="ghost"
     >
-      <template #item="{ element }">
-        <ComponentRenderer :componentData="element" />
-      </template>
+      <div class="canvas-item" v-for="component in components">
+        <ComponentRenderer :componentData="component" />
+      </div>
     </VueDraggable>
+
   </div>
 </template>
 
 <style scoped>
-    div.canvas {
-        display: flex;
-        background-color: gray;
-        flex-direction: column;
-        align-items: center;
-        justify-content: start;
-        min-height: 100%;
-        flex: 1;
-        overflow-y: auto;
-        padding: 1rem;
-    }
+.canvas {
+  flex: 1;
+  min-height: 100vh;
+  width: 100%;
+  padding: 1rem;
+  background-color: #b9b9b9;
+}
 
-    .ghost {
-        opacity: 0.5;
-    }
+.canvas-item {
+  color: black;
+  border-radius: 10px;
+  background: white;
+  padding: 12px;
+  margin-bottom: 10px;
+  min-height: 40px;
+}
 </style>

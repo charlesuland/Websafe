@@ -1,23 +1,30 @@
 <script setup>
-    import TextBlock from '@/components/blocks/TextBlock.vue'
-    import ImageBlock from '@/components/blocks/ImageBlock.vue'
-    //import ContainerBlock from '@/components/blocks/ContainerBlock.vue'
+import { computed } from 'vue'
+import TextBlock from '@/components/blocks/TextBlock.vue'
+import ImageBlock from '@/components/blocks/ImageBlock.vue'
 
-    const props = defineProps({
-        componentData: Object
-    })
+const props = defineProps({
+  componentData: Object
+})
 
-    const componentMap = {
-        text: TextBlock,
-        image: ImageBlock
-    }
+const componentMap = {
+  text: TextBlock,
+  image: ImageBlock
+}
 
-    console.log('ComponentRenderer mounting with:', props.componentData)
+const resolvedComponent = computed(() => {
+  return componentMap[props.componentData.type] || null
+})
 </script>
 
 <template>
   <component
-    :is="componentMap[componentData.type]"
+    v-if="resolvedComponent"
+    :is="resolvedComponent"
     v-bind="componentData.props"
   />
+
+  <div v-else class="unknown-component">
+    Unknown component: {{ componentData.type }}
+  </div>
 </template>

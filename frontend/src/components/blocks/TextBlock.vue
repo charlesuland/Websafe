@@ -9,7 +9,7 @@
 
 <template>
   <div>
-    {{ props.text }}
+    {{ text }}
   </div>
 </template>
 
@@ -20,6 +20,5 @@
     padding: 1rem;
     margin: 1rem;
     min-width: 200px;
-    border: 2px solid #333;
   }
 </style>

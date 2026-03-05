@@ -13,6 +13,7 @@
 
 <template>
   <div class="image-block">
+    <p>Image Block</p>
     <img :src="src" :alt="alt"/>
   </div>
 </template>

@@ -28,18 +28,8 @@
 </template>
 
 <style scoped>
-  .palette {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 200px;
-    height: 100vh;
-    background-color: #f0f0f0;
-    border-right: 1px solid #ccc;
-    padding: 1rem;
-  }
   .palette-item {
-    background-color: gray;
+    background-color: rgb(155, 155, 155);
     color: black;
     display: flex;
     justify-content: center;
