@@ -1,0 +1,11 @@
+JSON Web Token Notes
+--------------------
+
+standard that defines a way to securely transmit data using JSON Objects.
+signed tokens can verify the integrity of claims contained within integrity
+uses public/private key pairs.
+
+Authorization and JWT: after a user is logged in, the JWT is sent with each request, allowing the user 
+to access whatever that token can access (routes, services, resources, etc)
+
+A user logs in, you create a JWT for them and return it. They use that JWT on every subsequent request, which gives them the access that the token allows for on the backend.
