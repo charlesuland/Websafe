@@ -2,16 +2,7 @@ from sqlalchemy import JSON, ForeignKey, func, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 import enum
 from datetime import datetime
-
-
-class Base(DeclarativeBase):
-    __abstract__ = True
-    id: Mapped[int] = mapped_column(primary_key=True)
-    is_active: Mapped[bool] = mapped_column(Boolean)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now()
-    )
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+from database import Base
 
 
 class User(Base):
