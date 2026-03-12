@@ -1,1 +1,0 @@
-fastapi[standard] sqlmodel uvicorn python-jose[cryptography] passlib[argon2] python-multipart
