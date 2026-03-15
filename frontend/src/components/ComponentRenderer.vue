@@ -15,6 +15,10 @@ const componentMap = {
 const resolvedComponent = computed(() => {
   return componentMap[props.componentData.type] || null
 })
+
+function updateProp(key, value) {
+  props.componentData.props[key] = value
+}
 </script>
 
 <template>
@@ -22,6 +26,7 @@ const resolvedComponent = computed(() => {
     v-if="resolvedComponent"
     :is="resolvedComponent"
     v-bind="componentData.props"
+    @update:src="value => updateProp('src', value)"
   />
 
   <div v-else class="unknown-component">

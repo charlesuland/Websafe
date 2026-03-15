@@ -1,31 +1,43 @@
 <script setup>
 import ComponentPallete from './ComponentPallete.vue'
 import BuilderCanvas from './BuilderCanvas.vue'
+import TrashZone from './TrashZone.vue'
 </script>
 
 <template>
   <div class="editor-layout">
-    <ComponentPallete class="palette"/>
-    <BuilderCanvas class="canvas"/>
+
+    <aside>
+      <ComponentPallete />
+    </aside>
+
+    <main>
+      <BuilderCanvas />
+    </main>
+
+    <TrashZone />
+
   </div>
 </template>
 
 <style scoped>
-    .editor-layout {
-        display: flex;
-        height: 100vh;
-        width: 100vw;
-    }
 
-    .palette {
-        width: 250px;
-        background: #767676;
-        border-right: 1px solid #ccc
-    }
+main {
+  flex: 1;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
 
-    .canvas {
-        flex: 1;
-        padding: 1rem;
-        overflow: auto;
-    }
+.editor-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+
+  background: #1e1e1e;
+  color: white;
+  overflow: hidden;
+}
+
 </style>
