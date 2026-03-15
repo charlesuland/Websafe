@@ -8,6 +8,7 @@ from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from app import models
+from app.schemas import Token
 
 router = APIRouter(
     prefix="", tags=[""], dependencies=[], responses={404: {"description": "Not found"}}
@@ -18,26 +19,6 @@ pwd_context = CryptContext(schemes=["argon2"])
 SECRET_KEY = "asdf"
 EXPIRES_IN_MINUTES = 30
 ALGORITHM = "HS256"
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-
-class TokenData(BaseModel):
-    username: str | None = None
-
-
-class User(BaseModel):
-    username: str
-    email: str | None = None
-    first_name: str
-    last_name: str
-    is_active: bool
-
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 def verify_password(plain_password: str, hashed_password: str):
@@ -61,40 +42,9 @@ async def login_for_access_token(
     db: Annotated[Session, Depends(get_db)],
 ):
     user = db.query(models.User).filter(models.User.username == form_data.username)
-    if not user or verify_password(
+    if not user or not verify_password(
         plain_password=form_data.password, hashed_password=user["hashed_password"]
     ):
         return HTTPException(status_code=401)
     access_token = create_access_token({"sub": user["username"]})
     return {"access_token": access_token, "token_type": "bearer"}
-
-
-async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
-    db: Annotated[Session, Depends(get_db)],
-):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-        token_data = TokenData(username=username)
-    except JWTError:
-        raise credentials_exception
-    user = db.query(models.User).filter(models.User.username == token_data.username)
-    if user is None:
-        raise credentials_exception
-    return user
-
-
-async def get_current_active_user(
-    current_user: Annotated[User, Depends(get_current_user)],
-):
-    if not current_user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user

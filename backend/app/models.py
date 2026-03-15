@@ -15,7 +15,7 @@ class User(Base):
     hash_password: Mapped[str] = mapped_column(nullable=False)
     first_name: Mapped[str]
     last_name: Mapped[str]
-    stripe_customer_id: Mapped[str] = mapped_column(unique=True, nullable=False)
+    stripe_customer_id: Mapped[str]
 
 
 class SubscriptionStatus(enum.Enum):
