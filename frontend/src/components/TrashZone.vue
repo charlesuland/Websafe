@@ -33,8 +33,8 @@ function onDrop(event) {
         display: flex;
         align-items: center;
         justify-content: center;
+        text-align: center;
         font-weight: bold;
-        cursor: pointer;
         box-shadow: 0 6px 18px rgba(0,0,0,.3);
     }
 </style>

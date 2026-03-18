@@ -1,17 +1,38 @@
 import { defineStore } from 'pinia'
+import { ref } from 'vue'
 
-export const useBuilderStore = defineStore('builder', {
-  state: () => ({
-    components: []
-  }),
+export const useBuilderStore = defineStore('builder', () => {
+  const components = ref([])
+  const selectedComponent = ref(null)
+  const renderKey = ref(0)
 
-  actions: {
-    addComponent(component) {
-      this.components.push(component)
-    },
+  function addComponent(component) {
+    components.value.push(component)
+  }
 
-    removeComponent(component_id) {
-      this.components = this.components.filter(c => c.id !== component_id)
-    }
+  function removeComponent(component_id) {
+    setTimeout(() => {
+      components.value = components.value.filter(c => c.id !== component_id)
+      console.log("Removed component: " + component_id)
+      renderKey.value++
+    })
+  }
+
+  function selectComponent(component) {
+    console.log("Selected component: " + component.id + " " + component.props)
+    selectedComponent.value = component
+  }
+
+  function deselectComponent() {
+    selectedComponent.value = null
+  }
+
+  return {
+    components,
+    selectedComponent,
+    addComponent,
+    removeComponent,
+    selectComponent,
+    deselectComponent
   }
 })

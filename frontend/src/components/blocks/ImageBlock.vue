@@ -3,7 +3,11 @@ import placeholder from '@/assets/placeholder_image.jpg'
 
 const props = defineProps({
   src: { type: String, default: "" },
-  alt: { type: String, default: "Image" }
+  alt: { type: String, default: "Image" },
+  style: {
+    backgroundColor: "gray",
+    backgroundOpacity: 1
+  }
 })
 
 const emit = defineEmits(["update:src"])
@@ -48,7 +52,7 @@ function handleUpload(event) {
   overflow: hidden;
   border-radius: 10px;
   border: 2px dashed #ccc;
-
+  background-color: white;
   aspect-ratio: 16 / 9;
 }
 

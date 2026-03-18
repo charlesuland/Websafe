@@ -15,13 +15,28 @@ const componentDefaults = {
   text: {
     colSpan: 4,
     rowSpan: 1,
-    props: { text: "New Text Block" }
+    props: {
+      text: "New Text Block",
+      style: {
+        fontSize: 18,
+        textAlign: "center",
+        backgroundColor: "#ffffff",
+        backgroundOpacity: 1,
+        color: "#000000"
+      }
+    },
   },
 
   image: {
     colSpan: 6,
     rowSpan: 3,
-    props: { src: placeholder }
+    props: { 
+      src: placeholder,
+      style: {
+        backgroundColor: "#ffffff",
+        backgroundOpacity: 1
+      }
+    }
   }
 }
 
@@ -85,7 +100,7 @@ function onDrop(event) {
     row,
     colSpan: config.colSpan,
     rowSpan: config.rowSpan,
-    props: config.props,
+    props: structuredClone(config.props),
     children: []
   })
 }
@@ -141,11 +156,13 @@ function getGridPosition(event, canvas, component = null) {
 </script>
 
 <template>
-  <div class="canvas"
-       ref="canvas"
-       @drop="onDrop"
-       @dragover.prevent>
-
+  <div 
+    class="canvas"
+    ref="canvas"
+    @drop="onDrop"
+    @dragover.prevent
+    @click.self="store.deselectComponent"
+  >
     <VueDraggable
       v-model="components"
       item-key="id"
@@ -157,12 +174,14 @@ function getGridPosition(event, canvas, component = null) {
         class="canvas-item"
         v-for="component in components"
         :key="component.id"
+        :class="{ selected: store.selectedComponent?.id === component.id }"
         draggable="true"
 
         @dragstart="startDrag($event, component)"
         @drag="dragMove($event, component)"
         @dragend="dragEnd($event, component)"
-
+        @click="store.selectComponent(component)"
+        
         :style="{
           gridColumn: component.col + ' / span ' + component.colSpan,
           gridRow: component.row + ' / span ' + component.rowSpan
@@ -172,7 +191,6 @@ function getGridPosition(event, canvas, component = null) {
         <div class="resize-handle" @mousedown="startResize($event, component)" draggable="false"></div>
       </div>
     </VueDraggable>
-
   </div>
 </template>
 
@@ -182,18 +200,23 @@ function getGridPosition(event, canvas, component = null) {
 }
 
 .canvas {
+  position: relative;
+  margin: 0px;
+  padding: 0px;
+  flex-direction: column;
+  overflow: hidden;
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   grid-auto-rows: 80px;
   width: 100%;
-  height: 100%;
+  min-height: 100%;
   min-height: 800px;
 
-  background-color: #918fb0;
+  background-color: #e2e2e2;
 
   background-image:
-    linear-gradient(#b0b0b0 1px, transparent 1px),
-    linear-gradient(90deg, #ccc 1px, transparent 1px);
+    linear-gradient(#ffffff 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255, 255, 255) 1px, transparent 1px);
 
   background-size:
     100% 80px,
@@ -206,21 +229,25 @@ function getGridPosition(event, canvas, component = null) {
 }
 
 .canvas-item {
-  border-radius: 10px;
-  background-color: rgba(113,113,113,0.85);
-
-  border: 2px solid #444;
-
-  padding: 12px;
-  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
+  transition: all .2s ease;
 }
 
-.canvas-item:hover {
-  border-width: 2px;
-  border: solid;
-  border-color: rgb(0, 255, 242);
-  transition: border 0.2s ease;
+.canvas-item.selected {
+  outline: 2px solid cyan;
+}
+
+.canvas-item:active {
+  cursor: grabbing;
+  box-shadow: 10px 10px 15px 10px rgba(0,0,0,0.4);
+  transform: scale(0.98);
+}
+
+.canvas-item:hover:not(.selected) {
+  outline: 2px solid rgba(0, 255, 242, 0.5);
 }
 
 .resize-handle {

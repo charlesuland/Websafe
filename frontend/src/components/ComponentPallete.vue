@@ -1,7 +1,7 @@
 <script setup>
   const paletteItems = [
     { type: 'text', label: 'Text Block' },
-    { type: 'image', label: 'Image' }
+    { type: 'image', label: 'Image Block' }
     // Not implemented yet so just holding off until text and images are solid
     //{ type: 'container', label: 'Container' }
   ]
@@ -31,8 +31,13 @@
 
 <style scoped>
   .palette {
-    width: 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+    height: 100%;
     background-color: gray;
+    height: 100%;
     padding: 20px;
     border-radius: 10px;
   }
@@ -42,9 +47,10 @@
     border-radius: 8px;
     padding: 12px;
     cursor: grab;
-
-    border: 1px solid transparent;
-
+    text-align: center;
+    font-weight: bold;
+    border: 1px solid darkgray;
+    box-shadow: 10px, 10px, 5px, black;
     transition: all .2s ease;
   }
 

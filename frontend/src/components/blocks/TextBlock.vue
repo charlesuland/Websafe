@@ -2,7 +2,17 @@
 import { ref, watch } from 'vue'
 
 const props = defineProps({
-  text: { type: String, default: 'TEXT BOX' }
+  text: { 
+    type: String,
+    default: 'TEXT BOX'
+  },
+  style: {
+    fontSize: 18,
+    textAlign: "center",
+    backgroundColor: "#ffffff",
+    backgroundOpacity: 1,
+    color: "#000000"
+  }
 })
 
 const emit = defineEmits(['update:text'])
@@ -18,46 +28,58 @@ function autoResize(e) {
 </script>
 
 <template>
-  <div class="text-block">
+  <div class="text-block"
+    :style="{ 
+      backgroundColor: props.style.backgroundColor,
+      opacity: props.style.opacity 
+    }">
     <textarea
       id="textField"
       placeholder="TEXT"
       v-model="text"
       @input="autoResize"
+      :style="{
+        fontSize: style.fontSize + 'px',
+        textAlign: style.textAlign,
+        color: style.color
+      }"
     ></textarea>
   </div>
 </template>
 
 <style scoped>
   .text-block {
-    width: 100%;
-    height: 100%;
     display: flex;
-    align-items: center;
+    flex-direction: column;
     justify-content: center;
+    align-items: stretch;
     padding: 5px;
+    height: 100%;
+    width: 100%;
+    background-color: blue;
+    position: relative;
+    border-radius: 10px;
+    border-color: black;
+    border-width: 30px;
+    border: solid;
   }
 
   #textField {
-    width: 90%;
-    min-height: 40px;
-    max-height: 100%;
-    font-size: clamp(14px, 2vw, 24px);
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 30px;
+    font-size: 12px;
     text-align: center;
-    line-height: 1.4;
-    resize: none;
-    overflow: hidden;
+    overflow-wrap: break-word;
+    padding: 0.5em;
     border: none;
-    background: transparent;
+    resize: none;
+    line-height: auto;
+    background-color: transparent;
   }
 
-  #inputField::placeholder {
-    color: black;
-  }
-
-  #inputField:hover {
+  #textField:hover {
     border: solid;
     border-color: black;
-    border-radius: 5px;
   }
 </style>
