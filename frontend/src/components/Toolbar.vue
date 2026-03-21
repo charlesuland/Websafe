@@ -14,8 +14,7 @@
 </script>
 
 <template>
-    <div class="toolbar">
-        <button class="publish-button" @click="$emit('publish')">Publish</button>
+    <div class="toolbar" v-if="store.selectedComponent">
         <div class="toolbar-item" v-if="store.selectedComponent?.props.style?.fontSize !== undefined">
             <h4>Font Size:</h4>
             <input
@@ -82,41 +81,53 @@
 <style scoped>
     .toolbar {
         display: flex;
+        align-items: center;
         gap: 20px;
-        justify-content: right;
-        align-content: center;
-        background-color: white;
-        border-radius: 5px;
-        padding: 10px;
-        position: fixed;
-        right: 0px;
-        height: 50px;
-        width: 100%;
+        flex-wrap: wrap;
+        padding: 10px 16px;
+        border-radius: 8px;
     }
 
     .toolbar-item {
         display: flex;
-        flex-direction: row;
-        gap: 5px;
-        color: black;
+        align-items: center;
+        height: 50px;
+        gap: 8px;
+        background: #e4e4e4;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        padding: 6px 10px;
+        border-radius: 6px;
     }
 
-    h4 {
-        font-weight: bold;
+    .toolbar-item h4 {
+        font-size: 12px;
+        margin: 0;
+        color: #555;
     }
 
-    .publish-button {
-        position: absolute;
-        left: 5px;
-        top: 5px;
-        bottom: 5px;
-        background-color: rgb(0, 123, 255);
-        height: 100%;
-        width: 100px;
+    .toolbar-item input[type="number"] {
+        width: 60px;
+    }
+
+    .toolbar-item input[type="color"] {
         border: none;
-        border-radius: 10px;
-        font-size: large;
-        font-weight: bold;
-        color: white;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        background: none;
+        cursor: pointer;
+    }
+
+    .toolbar-item button {
+        padding: 4px 8px;
+        border-radius: 6px;
+        border: none;
+        background: #ddd;
+        cursor: pointer;
+        font-size: 12px;
+    }
+
+    .toolbar-item button:hover {
+        background: #ccc;
     }
 </style>

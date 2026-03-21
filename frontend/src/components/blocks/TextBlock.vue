@@ -2,9 +2,8 @@
 import { ref, watch } from 'vue'
 
 const props = defineProps({
-  text: { 
-    type: String,
-    default: 'TEXT BOX'
+  text: {
+    type: String
   },
   style: {
     fontSize: 18,
@@ -66,6 +65,7 @@ function autoResize(e) {
 
   #textField {
     width: 100%;
+    height: 100%;
     box-sizing: border-box;
     min-height: 30px;
     font-size: 12px;

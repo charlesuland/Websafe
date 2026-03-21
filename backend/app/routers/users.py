@@ -1,16 +1,16 @@
 from fastapi import APIRouter, HTTPException
 from app.dependencies import get_db
-from app.models import User
+from app.models import User, Vendor
 from fastapi import Depends
 from pydantic import BaseModel, EmailStr
 from sqlmodel import select
 from app.auth import get_password_hash
+from app.database import SessionLocal
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 # to make a function user this format
 i = 1
-
 
 class UserIn(BaseModel):
     username: str
@@ -19,7 +19,6 @@ class UserIn(BaseModel):
     first_name: str
     last_name: str
     phone: str
-
 
 @router.get("/")
 async def read_user():
@@ -54,3 +53,50 @@ async def register_user(user_in: UserIn, db=Depends(get_db)):
     db.add(new_user)
     db.commit()
     return user_in
+
+'''
+Using this as a temporary test user
+
+username/email: jared
+password: jmsjms
+'''
+
+def create_test_user():
+    db = SessionLocal()
+
+    existingUser = db.execute(
+        select(User).where(User.username == "jared")
+    ).scalar_one_or_none()
+
+    existingVendor = db.execute(
+        select(Vendor).where(Vendor.business_name == "name")
+    ).scalar_one_or_none()
+
+    user = User(
+            username="jared",
+            email="jared@sandfoss.net",
+            hash_password=get_password_hash("jmsjms"),
+            first_name="Jared",
+            last_name="Sandfoss",
+            phone="8599409574",
+            stripe_customer_id="test"
+        )
+
+    if not existingUser:
+        db.add(user)
+        
+
+    if not existingVendor:
+        vendor = Vendor(
+            business_name="name",
+            email="email",
+            owner=1,
+            phone=user.phone,
+            stripe_connect_id="hello",
+            payouts_enabled=False,
+            requirements_due_for_payment="hello"
+        )
+        db.add(vendor)
+
+    db.commit()
+    db.close()

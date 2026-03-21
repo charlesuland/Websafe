@@ -2,6 +2,9 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LandingPage from '../views/LandingPage.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '@/views/RegisterView.vue'
+import DashboardView from '@/views/DashboardView.vue'
+import PublishedPage from '@/views/PublishedPage.vue'
+import EditorView from '@/views/EditorView.vue'
 
 const routes = [
   {
@@ -15,6 +18,18 @@ const routes = [
   {
     path: '/register',
     component: RegisterView
+  },
+  {
+    path: '/dashboard',
+    component: DashboardView
+  },
+  {
+    path: '/editor/:projectId',
+    component: EditorView
+  },
+  {
+    path: '/site/:projectSlug/:pageName',
+    component: PublishedPage
   }
 ]
 
