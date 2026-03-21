@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import TextBlock from '@/components/blocks/TextBlock.vue'
 import ImageBlock from '@/components/blocks/ImageBlock.vue'
+import EditorNavbar from '@/components/blocks/EditorNavbar.vue'
 
 const props = defineProps({
   componentData: Object
@@ -9,7 +10,8 @@ const props = defineProps({
 
 const componentMap = {
   text: TextBlock,
-  image: ImageBlock
+  image: ImageBlock,
+  navbar: EditorNavbar
 }
 
 const resolvedComponent = computed(() => {
@@ -27,6 +29,7 @@ function updateProp(key, value) {
     :is="resolvedComponent"
     v-bind="componentData.props"
     @update:src="value => updateProp('src', value)"
+    @update:text="value => updateProp('text', value)"
   />
 
   <div v-else class="unknown-component">

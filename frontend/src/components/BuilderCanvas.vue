@@ -37,6 +37,18 @@ const componentDefaults = {
         backgroundOpacity: 1
       }
     }
+  },
+
+  navbar: {
+    colSpan: 12,
+    rowSpan: 1,
+    props: {
+      links: ["Home", "About"],
+      style: {
+        backgroundColor: "#ffffff",
+        color: "#000000"
+      }
+    }
   }
 }
 
@@ -153,6 +165,7 @@ function getGridPosition(event, canvas, component = null) {
 
   return { col, row }
 }
+
 </script>
 
 <template>
@@ -197,6 +210,7 @@ function getGridPosition(event, canvas, component = null) {
 <style scoped>
 .vue-draggable-wrapper {
   display: contents;
+  width: 1100px;
 }
 
 .canvas {

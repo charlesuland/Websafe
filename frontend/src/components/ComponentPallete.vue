@@ -1,7 +1,8 @@
 <script setup>
   const paletteItems = [
     { type: 'text', label: 'Text Block' },
-    { type: 'image', label: 'Image Block' }
+    { type: 'image', label: 'Image Block' },
+    { type: 'navbar', label: 'Navbar' }
     // Not implemented yet so just holding off until text and images are solid
     //{ type: 'container', label: 'Container' }
   ]
@@ -36,14 +37,19 @@
     gap: 5px;
     width: 100%;
     height: 100%;
-    background-color: gray;
+    background-color: rgb(226, 226, 226);
+    box-shadow: inset 0 0px 5px rgba(0, 0, 0, 0.5);
     height: 100%;
     padding: 20px;
     border-radius: 10px;
+    border: solid;
+    border-color: rgb(255, 255, 255);
+    border-width: 5px;
   }
 
   .palette-item {
-    background: #3a3a3a;
+    background: #2f7df6;
+    color: white;
     border-radius: 8px;
     padding: 12px;
     cursor: grab;
@@ -55,7 +61,7 @@
   }
 
   .palette-item:hover {
-    background: #4a4a4a;
+    background: #99c2ff;
     border-color: #5a8cff;
   }
 

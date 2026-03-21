@@ -6,16 +6,16 @@
       <h1>{{ title }}</h1>
       <p>{{ subtitle }}</p>
 
-      <form>
+      <form @submit.prevent="login">
 
         <div class="input-group">
           <label>Email</label>
-          <input type="email" placeholder="Enter your email" />
+          <input v-model="email" type="text" placeholder="Enter your email" />
         </div>
 
         <div class="input-group">
           <label>Password</label>
-          <input type="password" placeholder="Enter your password" />
+          <input v-model="password" type="password" placeholder="Enter your password" />
         </div>
 
         <!-- Only show for register -->
@@ -49,6 +49,38 @@ defineProps({
   linkRoute: String,
   isRegister: Boolean
 })
+
+import { ref } from 'vue'
+
+const email = ref('')
+const password = ref('')
+
+async function login() {
+  console.log("Trying to login with: " + email.value + " " + password.value)
+  const body = new URLSearchParams()
+
+  body.append('username', email.value)
+  body.append('password', password.value)
+
+  const res = await fetch(`/api/token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body
+  })
+
+  if (!res.ok) {
+    alert("Login failed!")
+    return
+  }
+
+  const data = await res.json()
+
+  localStorage.setItem('token', data.access_token)
+
+  window.location.href = '/dashboard'
+}
 
 </script>
 

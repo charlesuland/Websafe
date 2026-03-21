@@ -3,9 +3,11 @@
 #
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from app.routers import users
+from app.routers import users, projects
+from app import auth
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
+from app.routers.users import create_test_user
 
 # necessary for the app to build the models
 import app.models
@@ -16,6 +18,9 @@ import app.models
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+
+    create_test_user()
+    
     print("APP STARTING...\nCREATING TABLES")
     yield
     print("APP SHUTTING DOWN")
@@ -35,4 +40,6 @@ app.add_middleware(
 )
 
 # need to include the different routes
-app.include_router(users.router)
+app.include_router(auth.router, prefix="/api")
+app.include_router(projects.projects_router, prefix="/api")
+app.include_router(projects.public_router, prefix="/api")

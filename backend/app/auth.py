@@ -9,6 +9,9 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from app import models
 from app.schemas import Token
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="", tags=[""], dependencies=[], responses={404: {"description": "Not found"}}
@@ -41,10 +44,10 @@ async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[Session, Depends(get_db)],
 ):
-    user = db.query(models.User).filter(models.User.username == form_data.username)
+    user = db.query(models.User).filter(models.User.username == form_data.username).first()
     if not user or not verify_password(
-        plain_password=form_data.password, hashed_password=user["hashed_password"]
+        plain_password=form_data.password, hashed_password=user.hash_password
     ):
-        return HTTPException(status_code=401)
-    access_token = create_access_token({"sub": user["username"]})
+        raise HTTPException(status_code=401)
+    access_token = create_access_token({"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}

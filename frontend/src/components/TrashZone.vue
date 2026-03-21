@@ -23,11 +23,8 @@ function onDrop(event) {
 
 <style scoped>
     .trash-zone {
-        position: fixed;
-        bottom: 25px;
-        right: 25px;
-        width: 110px;
-        height: 110px;
+        width: 150px;
+        height: 80px;
         background: #ff4d4d;
         border-radius: 12px;
         display: flex;

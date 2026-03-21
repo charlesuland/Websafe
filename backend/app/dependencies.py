@@ -14,9 +14,8 @@ from app.schemas import User, TokenData
 # for ex., the functions will ask for a connection to the database; that comes from here
 
 ALGORITHM = "HS256"
-SECRET_KEY = "123"
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
+SECRET_KEY = "asdf"
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token")
 
 def get_db():
     db = SessionLocal()

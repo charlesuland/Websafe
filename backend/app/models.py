@@ -1,7 +1,8 @@
-from sqlalchemy import JSON, ForeignKey, Boolean
+from sqlalchemy import JSON, ForeignKey, Boolean, Text
 from sqlalchemy.orm import Mapped, mapped_column
 import enum
 from datetime import datetime
+from typing import Optional
 from app.database import Base
 
 
@@ -94,7 +95,8 @@ class Project(Base):
     name: Mapped[str] = mapped_column(index=True)
     vendor: Mapped[int] = mapped_column(ForeignKey("vendors.id"), nullable=False)
     is_live: Mapped[bool] = mapped_column(default=False)
-    last_published: Mapped[datetime]
+    last_published: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    preview_image: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
 
 class ProjectPage(Base):
