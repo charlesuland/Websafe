@@ -51,6 +51,12 @@ async def get_all_products():
     pass
 
 
+# get all the published prodcuts
+@products_router.get("/get-all-published-products")
+async def get_all_published_products():
+    pass
+
+
 # change a product
 @products_router.post("/update-product")
 async def update_product():
