@@ -117,17 +117,18 @@ class ProjectProduct(Base):
     shipping_price: Mapped[int]
     currency: Mapped[str] = mapped_column(default="USD")
     is_published: Mapped[bool] = mapped_column(Boolean, default=False)
-
-
-class ProjectProductVariation(Base):
-    __tablename__ = "project_product_variations"
-
-    product_id: Mapped[int] = mapped_column(ForeignKey("project_products.id"))
-    name: Mapped[str]
-    description: Mapped[str]
     stock: Mapped[int]
-
     image_file_name: Mapped[str]
+
+    # class ProjectProductVariation(Base):
+    # __tablename__ = "project_product_variations"
+
+    # product_id: Mapped[int] = mapped_column(ForeignKey("project_products.id"))
+    # name: Mapped[str]
+    # description: Mapped[str]
+    # stock: Mapped[int]
+
+    # image_file_name: Mapped[str]
 
 
 class ProjectOrder(Base):
