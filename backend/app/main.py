@@ -8,6 +8,7 @@ from app import auth
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 from app.routers.users import create_test_user
+from app.routers.products import products_router
 
 # necessary for the app to build the models
 import app.models
@@ -17,10 +18,10 @@ import app.models
 # after the yield happens after the app shuts down
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
+    base_metadata = Base.metadata.create_all(bind=engine)
 
     create_test_user()
-    
+
     print("APP STARTING...\nCREATING TABLES")
     yield
     print("APP SHUTTING DOWN")
@@ -43,3 +44,4 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api")
 app.include_router(projects.projects_router, prefix="/api")
 app.include_router(projects.public_router, prefix="/api")
+app.include_router(products_router, prefix="/api")

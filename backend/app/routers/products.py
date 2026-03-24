@@ -3,64 +3,131 @@ from app.dependencies import get_db, get_current_active_user
 from app.models import Vendor, ProjectProduct
 from fastapi import Depends
 from pydantic import BaseModel
+from sqlalchemy import update, select
 
-products_router = APIRouter(prefix="/products", tags=["projects"])
+products_router = APIRouter(prefix="/products", tags=["products"])
+
+
+class ProductIn(BaseModel):
+    project_id: int
+    name: str
+    description: str
+    sale_price: int
+    shipping_price: int
+    image_file_name: str
+    stock: int
+
+
+class ProductID(BaseModel):
+    val: int
+
+
+class ProjectID(BaseModel):
+    val: int
 
 
 # create the incoming product
 @products_router.post("/create-product")
-async def create_product():
-
-    pass
+async def create_product(product_in: ProductIn, db=Depends(get_db)):
+    product_data = product_in.model_dump()
+    new_product = ProjectProduct(**product_data)
+    db.add(new_product)
+    db.commit()
 
 
 # increase the product stock by 1
 @products_router.post("/increment-product")
-async def increment_product():
-    pass
+async def increment_product(product_id: ProductID, db=Depends(get_db)):
+    stmt = (
+        update(ProjectProduct)
+        .where(ProjectProduct.id == product_id.val)
+        .values(stock=ProjectProduct.stock + 1)
+    )
+    db.execute(stmt)
+    db.commit()
 
 
 # decrease the product stock by 1
 @products_router.post("/decrement-product")
-async def decrement_product():
-    pass
+async def decrement_product(product_id: ProductID, db=Depends(get_db)):
+    stmt = (
+        update(ProjectProduct)
+        .where(ProjectProduct.id == product_id.val)
+        .values(stock=ProjectProduct.stock + 1)
+    )
+    db.execute(stmt)
+    db.commit()
 
 
 # return the product stock
 @products_router.get("/get-product-stock")
-async def get_product_stock():
-    pass
+async def get_product_stock(product_id: ProductID, db=Depends(get_db)):
+    stmt = select(ProjectProduct).where(ProjectProduct.id == product_id.val)
+    result_product = db.execute(stmt).scalars().first()
+    return result_product.stock
 
 
 # make the product inactive
 @products_router.delete("/delete-product")
-async def delete_product():
-    pass
+async def delete_product(product_id: ProductID, db=Depends(get_db)):
+    stmt = (
+        update(ProjectProduct)
+        .where(ProjectProduct.id == product_id.val)
+        .values(is_active=False)
+    )
+    db.execute(stmt)
+    db.commit()
 
 
 # get a product
 @products_router.get("/get-product")
-async def get_product():
-    pass
+async def get_product(product_id: ProductID, db=Depends(get_db)):
+    stmt = select(ProjectProduct).where(ProjectProduct.id == product_id.val)
+
+    return db.execute(stmt).scalars().first()
 
 
 # get all the products that are associated with the project
 @products_router.get("/get-all-products")
-async def get_all_products():
+async def get_all_products(project_id: ProjectID, db=Depends(get_db)):
     # return all
-    pass
+    stmt = (
+        select(ProjectProduct)
+        .where(ProjectProduct.project_id == project_id.val)
+        .where(ProjectProduct.is_active)
+    )
+    return db.execute(stmt).scalars().all()
 
 
 # get all the published prodcuts
 @products_router.get("/get-all-published-products")
-async def get_all_published_products():
-    pass
+async def get_all_published_products(project_id: ProjectID, db=Depends(get_db)):
+    stmt = (
+        select(ProjectProduct)
+        .where(ProjectProduct.project_id == project_id.val)
+        .where(ProjectProduct.is_active)
+        .where(ProjectProduct.is_published)
+    )
+    return db.execute(stmt).scalars().all()
 
 
 # change a product
 @products_router.post("/update-product")
-async def update_product():
-    pass
+async def update_product(
+    product_id: ProductID, product_in: ProductIn, db=Depends(get_db)
+):
+    stmt = (
+        update(ProjectProduct)
+        .where(ProjectProduct.id == product_id.val)
+        .values(
+            name=product_in.name,
+            description=product_in.description,
+            sale_price=product_in.sale_price,
+            shipping_price=product_in.shipping_price,
+        )
+    )
+    db.execute(stmt)
+    db.commit()
 
 
 # put a picture into the S3 object server

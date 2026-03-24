@@ -120,16 +120,6 @@ class ProjectProduct(Base):
     stock: Mapped[int]
     image_file_name: Mapped[str]
 
-    # class ProjectProductVariation(Base):
-    # __tablename__ = "project_product_variations"
-
-    # product_id: Mapped[int] = mapped_column(ForeignKey("project_products.id"))
-    # name: Mapped[str]
-    # description: Mapped[str]
-    # stock: Mapped[int]
-
-    # image_file_name: Mapped[str]
-
 
 class ProjectOrder(Base):
     __tablename__ = "project_orders"
@@ -153,7 +143,7 @@ class ShippingStatus(enum.Enum):
 class ProjectOrderItem(Base):
     __tablename__ = "project_order_items"
 
-    item: Mapped[int] = mapped_column(ForeignKey("project_product_variations.id"))
+    item: Mapped[int] = mapped_column(ForeignKey("project_products.id"))
     order: Mapped[int] = mapped_column(ForeignKey("project_orders.id"))
     price_at_purchase: Mapped[int]
     tracking_number: Mapped[str]
