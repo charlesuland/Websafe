@@ -6,9 +6,11 @@
     function updateStyle(key, value) {
         const component = store.selectedComponent
 
-        if (!component.props.style)
+        if (!component.props.style) {
             component.props.style = {}
-
+            return
+        }
+            
         component.props.style[key] = value
     }
 </script>

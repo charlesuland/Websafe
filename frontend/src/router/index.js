@@ -5,6 +5,7 @@ import RegisterView from '@/views/RegisterView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import PublishedPage from '@/views/PublishedPage.vue'
 import EditorView from '@/views/EditorView.vue'
+import ProductsView from '@/views/ProductsView.vue'
 
 const routes = [
   {
@@ -22,6 +23,10 @@ const routes = [
   {
     path: '/dashboard',
     component: DashboardView
+  },
+  {
+    path: '/products',
+    component: ProductsView
   },
   {
     path: '/editor/:projectId',

@@ -1,11 +1,21 @@
 from fastapi import APIRouter, HTTPException
-from app.dependencies import get_db, get_current_user
-from app.models import Project, ProjectPage, Vendor, DraftProjectPage
+from app.dependencies import get_db, get_current_user, get_s3_client
+from app.models import (
+    Project,
+    ProjectPage,
+    Vendor, 
+    DraftProjectPage,
+    MediaObjectMetadata,
+    ProjectProduct,
+    ProductImage
+)
 from fastapi import Depends
 from pydantic import BaseModel, EmailStr
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from uuid import uuid4
+import uuid as UUID
+import base64
+import mimetypes
 from sqlmodel import select
 
 projects_router = APIRouter(prefix="/projects", tags=["projects"])
@@ -37,19 +47,26 @@ async def get_projects(db=Depends(get_db), user=Depends(get_current_user)):
         select(Project).where(Project.vendor.in_(vendor_ids))
     ).scalars().all()
 
-    return [
-        {
+    projects_data = []
+    for p in projects:
+        preview_url = None
+        if p.preview_image:
+            metadata = db.get(MediaObjectMetadata, p.preview_image)
+            if metadata:
+                preview_url = f"https://websafe.s3.us-east-2.amazonaws.com/{metadata.file_key}"
+
+        projects_data.append({
             "id": p.id,
             "name": p.name,
             "is_live": p.is_live,
             "last_updated": p.updated_at,
             "last_published": p.last_published,
-            "preview_image": p.preview_image
-        }
-        for p in projects
-    ]
+            "preview_image": preview_url
+        })
 
-@projects_router.post("/")
+    return projects_data
+
+@projects_router.post("/create")
 async def create_project(projectIn: ProjectIn, db=Depends(get_db), user=Depends(get_current_user)):
     project_name = projectIn.name
 
@@ -82,7 +99,7 @@ async def create_project(projectIn: ProjectIn, db=Depends(get_db), user=Depends(
         "last_published": project.last_published
     }
 
-@projects_router.delete("/{project_id}")
+@projects_router.delete("/{project_id}/delete")
 async def delete_project(project_id: int, db=Depends(get_db), user=Depends(get_current_user)):
     project = db.get(Project, project_id)
 
@@ -118,7 +135,7 @@ async def get_project(project_id: int, db=Depends(get_db), user=Depends(get_curr
     return project
 
 
-@projects_router.get("/{project_id}/draft-pages")
+@projects_router.get("/{project_id}/get-draft-pages")
 async def get_draft_pages(project_id: int, db=Depends(get_db), user=Depends(get_current_user)):
     project = db.get(Project, project_id)
 
@@ -140,28 +157,6 @@ async def get_draft_pages(project_id: int, db=Depends(get_db), user=Depends(get_
         }
         for p in pages
     ]
-
-
-@public_router.get("/{project_slug}/{page_name}")
-async def get_page(project_slug: str, page_name: str, db=Depends(get_db)):
-    project = db.execute(
-        select(Project).where(Project.slug == project_slug)
-    ).scalar_one_or_none()
-
-    if not project or not project.is_live:
-        raise HTTPException(404)
-
-    page = db.execute(
-        select(ProjectPage).where(
-            ProjectPage.project_id == project.id,
-            ProjectPage.name == page_name.capitalize()
-        )
-    ).scalar_one_or_none()
-
-    if not page:
-        raise HTTPException(404)
-
-    return page.layout
 
 
 @projects_router.post("/{project_id}/publish")
@@ -199,14 +194,16 @@ async def publish_project(project_id: int, db=Depends(get_db), user=Depends(get_
     return {"status": "published"}
 
 
-@projects_router.post("/{project_id}/draft")
+@projects_router.post("/{project_id}/save-draft")
 async def save_draft_pages(
     project_id: int,
     data: DraftSaveRequest,
     db=Depends(get_db),
-    user=Depends(get_current_user)
+    user=Depends(get_current_user),
+    s3=Depends(get_s3_client)
 ):
     project = db.get(Project, project_id)
+
     if not project:
         raise HTTPException(404)
 
@@ -230,9 +227,55 @@ async def save_draft_pages(
         )
 
     if data.preview:
-        project.preview_image = data.preview
+        try:
+            previous_metadata = project.preview
+
+            header, encoded = data.preview.split(",", 1)
+            mime_type = header.split(":")[1].split(";")[0]
+
+            if previous_metadata:
+                file_key = previous_metadata.file_key
+
+            else:
+                ext = mimetypes.guess_extension(mime_type) or ".png"
+                file_id = str(UUID.uuid4())
+                file_key=f"projects/{project_id}/preview/{file_id}{ext}"
+
+            file_bytes = base64.b64decode(encoded)
+            file_size = len(file_bytes)
+
+            new_metadata = MediaObjectMetadata(
+                    project_id=project_id,
+                    file_key=file_key,
+                    file_type=mime_type,
+                    file_size_bytes=file_size
+                )
+
+            db.add(new_metadata)
+            db.flush()
+            
+            project.preview_image = new_metadata.id
+
+            obj = s3.Object("websafe", file_key)
+            obj.put(Body=file_bytes, ContentType=mime_type)
+
+        except Exception as e:
+            raise HTTPException(400, f"Invalid preview image: {str(e)}")
+    
     project.last_updated = datetime.utcnow()
 
     db.commit()
 
     return {"status": "saved"}
+
+
+@projects_router.post("/{project_id}/products")
+async def assignProducts(project_id: int, data: dict, db=Depends(get_db), user=Depends(get_current_user)):
+    project_ids = data.get("project_ids", [])
+
+    for id in project_ids:
+        db.add(ProjectProduct(project_id=project_id, product_id=id))
+
+    db.commit()
+
+    return {"status": "assigned"}

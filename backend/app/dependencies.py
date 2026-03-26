@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from app import models
 from sqlalchemy.orm import Session
 from app.schemas import User, TokenData
+import boto3
 
 
 # These dependencies are what the routes will pull from
@@ -16,6 +17,12 @@ from app.schemas import User, TokenData
 ALGORITHM = "HS256"
 SECRET_KEY = "asdf"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token")
+
+
+def get_s3_client():
+    s3_client = boto3.resource("s3")
+
+    return s3_client
 
 def get_db():
     db = SessionLocal()

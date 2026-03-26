@@ -16,6 +16,7 @@ onMounted(async () => {
     method: 'GET'
   })
 
+  // If unauthorized, redirect to login view
   if (res.status === 401) {
     localStorage.removeItem('token')
     router.push('/login')
@@ -33,7 +34,7 @@ async function createProject() {
   const token = localStorage.getItem('token')
 
   // Create new project
-  const res = await fetch('/api/projects/', {
+  const res = await fetch('/api/projects/create', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -45,7 +46,6 @@ async function createProject() {
   })
   
   const project = await res.json()
-  console.log(project)
 
   router.push(`/editor/${project.id}`)
 }
@@ -58,7 +58,7 @@ async function deleteProject(project_id, project_name) {
   if (!confirmDelete)
     return
   
-  const res = await fetch(`/api/projects/${project_id}`, {
+  const res = await fetch(`/api/projects/${project_id}/delete`, {
     method: 'DELETE',
     headers: {
       Authorization: `Bearer ${token}`
@@ -93,6 +93,7 @@ async function openProject(project_id) {
         <button>Projects</button>
         <button>Analytics</button>
         <button>Settings</button>
+        <button @click="router.push('/products')"> E-Commerce Products</button>
       </aside>
 
       <main class="content">
@@ -135,13 +136,13 @@ async function openProject(project_id) {
             </div>
 
             <div class="card-body">
-              <p class="project-text">Last Updated:</p>
+              <p class="project-text">Last Published:</p>
               <strong>{{ project.last_published }}</strong>
             </div>
 
             <div class="card-actions">
               <button @click="openProject(project.id)">Edit</button>
-              <button @click="deleteProject(project.id, project.name)">Delete</button>
+              <button class="delete" @click="deleteProject(project.id, project.name)">Delete</button>
             </div>
           </div>
         </div>
@@ -276,5 +277,9 @@ async function openProject(project_id) {
   border: none;
   border-radius: 6px;
   cursor: pointer;
+}
+
+.delete {
+  background-color: rgb(255, 85, 85);
 }
 </style>

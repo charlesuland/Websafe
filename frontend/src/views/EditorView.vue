@@ -22,7 +22,7 @@ const store = useBuilderStore()
 onMounted(async () => {
   const token = localStorage.getItem('token')
 
-  const res = await fetch(`/api/projects/${projectId}/draft-pages`, {
+  const res = await fetch(`/api/projects/${projectId}/get-draft-pages`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -45,7 +45,7 @@ async function saveDraft() {
 
   const previewImage = await captureCanvas()
 
-  const res = await fetch(`/api/projects/${projectId}/draft`, {
+  const res = await fetch(`/api/projects/${projectId}/save-draft`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

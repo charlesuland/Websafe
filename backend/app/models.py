@@ -1,5 +1,5 @@
 from sqlalchemy import JSON, ForeignKey, Boolean, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 from datetime import datetime
 from typing import Optional
@@ -96,7 +96,13 @@ class Project(Base):
     vendor: Mapped[int] = mapped_column(ForeignKey("vendors.id"), nullable=False)
     is_live: Mapped[bool] = mapped_column(default=False)
     last_published: Mapped[Optional[datetime]] = mapped_column(nullable=True)
-    preview_image: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    preview_image: Mapped[int] = mapped_column(ForeignKey("media_object_metadata.id"), nullable=True)
+
+    preview = relationship(
+        "MediaObjectMetadata",
+        foreign_keys=[preview_image],
+        lazy="joined"
+    )
 
 
 class ProjectPage(Base):
@@ -111,14 +117,21 @@ class ProjectProduct(Base):
     __tablename__ = "project_products"
 
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
+
     name: Mapped[str]
     description: Mapped[str]
     sale_price: Mapped[int]
     shipping_price: Mapped[int]
     currency: Mapped[str] = mapped_column(default="USD")
     is_published: Mapped[bool] = mapped_column(Boolean, default=False)
-    stock: Mapped[int]
-    image_file_name: Mapped[str]
+
+
+class ProductImage(Base):
+    __tablename__ = "product_images"
+
+    product_id: Mapped[int] = mapped_column(ForeignKey("product_drafts.id"))
+    file_key: Mapped[str]
+    position: Mapped[int]
 
 
 class ProjectOrder(Base):
@@ -187,3 +200,5 @@ class MediaObjectMetadata(Base):
     file_key: Mapped[str]
     file_type: Mapped[str]
     file_size_bytes: Mapped[int]
+
+    project = relationship(Project, foreign_keys=[project_id])
