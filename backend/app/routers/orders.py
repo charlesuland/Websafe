@@ -1,50 +1,94 @@
-from fastapi import APIRouter, Depends
-from app.models import ProjectOrder, ProjectOrderItem, ProjectCustomer
+# Part of this file was revised or written by Gemini AI
+
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from sqlalchemy import select
+from typing import List
+
 from app.dependencies import get_db, get_current_user
-from sqlalchemy import select, update
-from pydantic import BaseModel, EmailStr
+from app.models import ProjectOrder, ProjectCustomer, ProjectOrderItem, Project, Vendor
+from app.schemas import OrderOut, OrderCreate, User
+
+order_router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
-order_router = APIRouter(prefix="/order", tags=["orders"])
+@order_router.get("/{order_id}", response_model=OrderOut)
+async def get_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Fetch a single order, strictly validating ownership through
+    the Vendor -> Project -> Order chain.
+    """
+    # Build the query with joins to verify the owner
+    stmt = (
+        select(ProjectOrder)
+        .join(Project, ProjectOrder.project == Project.id)
+        .join(Vendor, Project.vendor == Vendor.id)
+        .where(ProjectOrder.id == order_id)
+        .where(Vendor.owner == current_user.id)
+    )
+
+    result = db.execute(stmt).scalars().first()
+
+    # Security note: Use 404 instead of 403 to avoid confirming
+    # the existence of an ID the user doesn't own.
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Order not found"
+        )
+
+    return result
 
 
-class ProjectID(BaseModel):
-    val: int
-
-
-class OrderID(BaseModel):
-    val: int
-
-
-@order_router.get("/")
-async def get_order(order_id: OrderID, db=Depends(get_db)):
-    stmt = select(ProjectOrder).where(ProjectOrder.id == order_id.val)
-    result_order = db.execute(stmt).scalars().first()
-    return result_order
-
-
-@order_router.get("/get-project-orders")
-async def get_project_orders(project_id: ProjectID, db=Depends(get_db)):
-    stmt = select(ProjectOrder).where(ProjectOrder.project == project_id.val)
-    result_orders = db.execute(stmt).scalars().all()
-    return result_orders
-
-
-@order_router.get("/get-customer-orders")
-async def get_customer_orders(
-    customer_email: EmailStr, project_id: ProjectID, db=Depends(get_db)
+@order_router.get("/project/{project_id}", response_model=List[OrderOut])
+async def get_project_orders(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     stmt = (
         select(ProjectOrder)
-        .join(ProjectCustomer)
-        .where(ProjectOrder.project == project_id.val)
-        .where(ProjectOrder.id == ProjectCustomer.order)
-        .where(ProjectCustomer.email == customer_email)
+        .join(Project, ProjectOrder.project == Project.id)
+        .join(Vendor, Project.vendor == Vendor.id)
+        .where(Project.id == project_id)
+        .where(Vendor.owner == current_user.id)
     )
-    result_orders = db.execute(stmt).scalars().all()
-    return result_orders
+    return db.execute(stmt).scalars().all()
 
 
-@order_router.post("/make-order")
-async def make_order(project_id, product_ids, customer_info, db=Depends(get_db)):
-    pass
+@order_router.post("/make-order", status_code=status.HTTP_201_CREATED)
+async def make_order(order_data: OrderCreate, db: Session = Depends(get_db)):
+    """
+    Public endpoint. Anyone can place an order.
+    We just need to verify the project_id exists.
+    """
+    # Check if the project exists before allowing an order
+    project = db.get(Project, order_data.project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    try:
+        new_order = ProjectOrder(project=order_data.project_id)
+        db.add(new_order)
+        db.flush()
+
+        for p_id in order_data.product_ids:
+            db.add(ProjectOrderItem(order_id=new_order.id, product_id=p_id))
+
+        db.add(
+            ProjectCustomer(
+                order=new_order.id,
+                email=order_data.customer_info.email,
+                name=order_data.customer_info.name,
+            )
+        )
+
+        db.commit()
+        return {"status": "success", "order_id": new_order.id}
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Order processing failed")
