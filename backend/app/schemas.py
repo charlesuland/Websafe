@@ -95,3 +95,30 @@ class OrderOut(OrderBase):
     project: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class VendorAddressBase(BaseModel):
+    house_number: int
+    street_name: str
+    city: str
+    state: str
+    postal_code: str
+
+
+class VendorCreate(BaseModel):
+    business_name: str
+    email: EmailStr
+    phone: str
+    stripe_connect_id: str
+    requirements_due_for_payment: str
+    address: VendorAddressBase  # Nested address info
+
+
+class VendorOut(BaseModel):
+    id: int
+    business_name: str
+    email: EmailStr
+    payouts_enabled: bool
+
+    class Config:
+        from_attributes = True
