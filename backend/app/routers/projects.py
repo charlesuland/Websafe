@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from app.dependencies import get_db, get_current_user, get_s3_client
+from app.dependencies import get_db, get_current_user, get_s3_client, s3_base_url
 from app.models import (
     Project,
     ProjectPage,
@@ -20,6 +20,7 @@ from sqlmodel import select
 
 projects_router = APIRouter(prefix="/projects", tags=["projects"])
 public_router = APIRouter(prefix="/site", tags=["public"])
+
 
 class DraftPageIn(BaseModel):
     name: str
@@ -53,7 +54,7 @@ async def get_projects(db=Depends(get_db), user=Depends(get_current_user)):
         if p.preview_image:
             metadata = db.get(MediaObjectMetadata, p.preview_image)
             if metadata:
-                preview_url = f"https://websafe.s3.us-east-2.amazonaws.com/{metadata.file_key}"
+                preview_url = f"{s3_base_url}{metadata.file_key}"
 
         projects_data.append({
             "id": p.id,

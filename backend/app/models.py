@@ -116,7 +116,7 @@ class ProjectPage(Base):
 class ProjectProduct(Base):
     __tablename__ = "project_products"
 
-    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=True, index=True)
 
     name: Mapped[str]
     description: Mapped[str]
@@ -124,12 +124,14 @@ class ProjectProduct(Base):
     shipping_price: Mapped[int]
     currency: Mapped[str] = mapped_column(default="USD")
     is_published: Mapped[bool] = mapped_column(Boolean, default=False)
+    stock: Mapped[int]
+    product_image: Mapped[int] = mapped_column(ForeignKey("media_object_metadata.id"), nullable=True)
 
-
+# Might not use this, not implemented yet
 class ProductImage(Base):
     __tablename__ = "product_images"
 
-    product_id: Mapped[int] = mapped_column(ForeignKey("product_drafts.id"))
+    product_id: Mapped[int] = mapped_column(ForeignKey("project_products.id"), index=True)
     file_key: Mapped[str]
     position: Mapped[int]
 

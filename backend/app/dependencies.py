@@ -16,6 +16,8 @@ import boto3
 
 ALGORITHM = "HS256"
 SECRET_KEY = "asdf"
+
+s3_base_url = "https://websafe.s3.us-east-2.amazonaws.com/"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token")
 
 

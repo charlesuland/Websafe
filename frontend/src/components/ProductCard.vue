@@ -1,28 +1,8 @@
 <script setup>
 
+import { assignToProject } from '@/views/ProductsView.vue'
+
 const selectedProject = ref(null)
-
-async function assignToProject(productId, projectId) {
-    const token = localStorage.getItem('token')
-
-    const res = await fetch(`/api/projects/${projectId}/products`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-            product_ids: [productId]
-        })
-    })
-
-    if (!res.ok) {
-        console.error("Failed to assign project", await res.text())
-        return
-    }
-
-    console.log(`Product ${productId} assigned to project ${projectId}`)
-}
 
 </script>
 

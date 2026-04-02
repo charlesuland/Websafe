@@ -1,6 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { 
+  apiFetchProjects,
+  apiCreateProject,
+  apiDeleteProject
+} from '@/DatabaseFunctions.js'
 
 const projects = ref([])
 const router = useRouter()
@@ -9,12 +14,7 @@ const loading = ref(false)
 onMounted(async () => {
   const token = localStorage.getItem('token')
 
-  const res = await fetch('/api/projects/', {
-    headers: {
-      Authorization: `Bearer ${token}`
-    },
-    method: 'GET'
-  })
+  const res = await apiFetchProjects()
 
   // If unauthorized, redirect to login view
   if (res.status === 401) {
@@ -23,7 +23,7 @@ onMounted(async () => {
     return
   }
 
-  projects.value = await res.json()
+  projects.value = res
 })
 
 async function createProject() {
@@ -31,44 +31,18 @@ async function createProject() {
   if (!projectName)
     return
 
-  const token = localStorage.getItem('token')
-
-  // Create new project
-  const res = await fetch('/api/projects/create', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({
-      name: projectName
-    })
-  })
-  
-  const project = await res.json()
+  const project = await apiCreateProject(projectName)
 
   router.push(`/editor/${project.id}`)
 }
 
 async function deleteProject(project_id, project_name) {
-  const token = localStorage.getItem('token')
-
   const confirmDelete = confirm(`Delete ${project_name}?`)
 
   if (!confirmDelete)
     return
-  
-  const res = await fetch(`/api/projects/${project_id}/delete`, {
-    method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  })
 
-  if (!res.ok) {
-    alert("Couldn't delete project")
-    return
-  }
+  await apiDeleteProject(project_id)
 
   projects.value = projects.value.filter(p => p.id !== project_id)
 }
