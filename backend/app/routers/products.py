@@ -1,3 +1,5 @@
+# this file was revised or written in part by Copilot
+
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from app.dependencies import get_db, get_current_active_user, get_s3_client, s3_base_url
 from app.models import ProjectProduct, ProductImage, MediaObjectMetadata, Project
@@ -30,7 +32,15 @@ class ProjectID(BaseModel):
 
 # create the incoming product
 @products_router.post("/create-product")
-async def create_product(product_in: ProductIn, db=Depends(get_db)):
+async def create_product(
+    product_in: ProductIn,
+    db=Depends(get_db),
+    current_user=Depends(get_current_active_user),
+):
+    project = db.get(Project, product_in.project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
     product_data = product_in.model_dump()
     new_product = ProjectProduct(**product_data)
     db.add(new_product)
@@ -42,7 +52,15 @@ async def create_product(product_in: ProductIn, db=Depends(get_db)):
 
 # increase the product stock by 1
 @products_router.post("/increment-product")
-async def increment_product(product_id: ProductID, db=Depends(get_db)):
+async def increment_product(
+    product_id: ProductID,
+    db=Depends(get_db),
+    current_user=Depends(get_current_active_user),
+):
+    product = db.get(ProjectProduct, product_id.val)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
     stmt = (
         update(ProjectProduct)
         .where(ProjectProduct.id == product_id.val)
@@ -50,11 +68,24 @@ async def increment_product(product_id: ProductID, db=Depends(get_db)):
     )
     db.execute(stmt)
     db.commit()
+    return {"status": "success", "stock": product.stock + 1}
+
 
 
 # decrease the product stock by 1
 @products_router.post("/decrement-product")
-async def decrement_product(product_id: ProductID, db=Depends(get_db)):
+async def decrement_product(
+    product_id: ProductID,
+    db=Depends(get_db),
+    current_user=Depends(get_current_active_user),
+):
+    product = db.get(ProjectProduct, product_id.val)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    if product.stock <= 0:
+        raise HTTPException(status_code=400, detail="Product stock cannot be negative")
+
     stmt = (
         update(ProjectProduct)
         .where(ProjectProduct.id == product_id.val)
@@ -62,6 +93,7 @@ async def decrement_product(product_id: ProductID, db=Depends(get_db)):
     )
     db.execute(stmt)
     db.commit()
+    return {"status": "success", "stock": product.stock - 1}
 
 
 # return the product stock
@@ -69,12 +101,23 @@ async def decrement_product(product_id: ProductID, db=Depends(get_db)):
 async def get_product_stock(product_id: int = Query(...), db=Depends(get_db)):
     stmt = select(ProjectProduct).where(ProjectProduct.id == product_id)
     result_product = db.execute(stmt).scalars().first()
-    return result_product.stock
+    if not result_product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return {"stock": result_product.stock}
+
 
 
 # make the product inactive
 @products_router.delete("/delete-product")
-async def delete_product(product_id: int = Query(...), db=Depends(get_db)):
+async def delete_product(
+    product_id: int = Query(...),
+    db=Depends(get_db),
+    current_user=Depends(get_current_active_user),
+):
+    product = db.get(ProjectProduct, product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
     stmt = (
         update(ProjectProduct)
         .where(ProjectProduct.id == product_id)
@@ -82,19 +125,26 @@ async def delete_product(product_id: int = Query(...), db=Depends(get_db)):
     )
     db.execute(stmt)
     db.commit()
+    return {"status": "success"}
 
 
 # get a product
 @products_router.get("/get-product")
 async def get_product(product_id: int = Query(...), db=Depends(get_db)):
     stmt = select(ProjectProduct).where(ProjectProduct.id == product_id)
-
-    return db.execute(stmt).scalars().first()
+    product = db.execute(stmt).scalars().first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return product
 
 
 # get all the products that are associated with the project
 @products_router.get("/get-all-products")
 async def get_all_products(project_id: int = Query(...), db=Depends(get_db)):
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
     stmt = (
         select(ProjectProduct)
         .where(ProjectProduct.project_id == project_id)
@@ -127,6 +177,10 @@ async def get_all_products(project_id: int = Query(...), db=Depends(get_db)):
 # get all the published prodcuts
 @products_router.get("/get-all-published-products")
 async def get_all_published_products(project_id: int = Query(...), db=Depends(get_db)):
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
     stmt = (
         select(ProjectProduct)
         .where(ProjectProduct.project_id == project_id)
@@ -139,8 +193,19 @@ async def get_all_published_products(project_id: int = Query(...), db=Depends(ge
 # change a product
 @products_router.post("/update-product")
 async def update_product(
-    product_id: ProductID, product_in: ProductIn, db=Depends(get_db)
+    product_id: ProductID,
+    product_in: ProductIn,
+    db=Depends(get_db),
+    current_user=Depends(get_current_active_user),
 ):
+    product = db.get(ProjectProduct, product_id.val)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    project = db.get(Project, product_in.project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
     stmt = (
         update(ProjectProduct)
         .where(ProjectProduct.id == product_id.val)
@@ -155,6 +220,8 @@ async def update_product(
     )
     db.execute(stmt)
     db.commit()
+    return {"status": "success"}
+
 
 
 # put a picture into the S3 object server

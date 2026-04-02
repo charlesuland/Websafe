@@ -45,3 +45,6 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(projects.projects_router, prefix="/api")
 app.include_router(projects.public_router, prefix="/api")
 app.include_router(products_router, prefix="/api")
+
+from app.routers.checkout import checkout_router
+app.include_router(checkout_router, prefix="/api")
