@@ -36,7 +36,7 @@ async def create_product(product_in: ProductIn, db=Depends(get_db)):
     db.add(new_product)
     db.commit()
     db.refresh(new_product)
-    
+
     return new_product
 
 
@@ -112,13 +112,15 @@ async def get_all_products(project_id: int = Query(...), db=Depends(get_db)):
             if metadata:
                 image_url = f"{s3_base_url}/{metadata.file_key}"
 
-        result.append({
-            "id": p.id,
-            "name": p.name,
-            "description": p.description,
-            "sale_price": p.sale_price,
-            "image_url": image_url
-        })
+        result.append(
+            {
+                "id": p.id,
+                "name": p.name,
+                "description": p.description,
+                "sale_price": p.sale_price,
+                "image_url": image_url,
+            }
+        )
     return result
 
 
@@ -148,7 +150,7 @@ async def update_product(
             sale_price=product_in.sale_price,
             shipping_price=product_in.shipping_price,
             product_image=product_in.product_image,
-            stock=product_in.stock
+            stock=product_in.stock,
         )
     )
     db.execute(stmt)
@@ -162,7 +164,7 @@ async def add_product_picture(
     product_id: int,
     file: UploadFile = File(...),
     db=Depends(get_db),
-    s3=Depends(get_s3_client)
+    s3=Depends(get_s3_client),
 ):
     product = db.get(ProjectProduct, product_id)
     if not product:
@@ -182,17 +184,14 @@ async def add_product_picture(
         project_id=product.project_id,
         file_key=file_key,
         file_type=file.content_type,
-        file_size_bytes=file_size
+        file_size_bytes=file_size,
     )
     db.add(metadata)
     db.flush()
     product.product_image = metadata.id
     db.commit()
 
-    return {
-        "status": "success",
-        "url": f"{s3_base_url}{file_key}"
-    }
+    return {"status": "success", "url": f"{s3_base_url}{file_key}"}
 
 
 # return the image for a project
@@ -201,9 +200,8 @@ async def get_product_image(product_id: int, db=Depends(get_db)):
     product = db.get(ProjectProduct, product_id)
     if not product or not product.product_image:
         raise HTTPException(404, "Product not found")
-    
+
     metadata = db.get(MediaObjectMetadata, product.product_image)
 
-    return {
-        "url": f"{s3_base_url}{metadata.file_key}"
-    }
+    return {"url": f"{s3_base_url}{metadata.file_key}"}
+

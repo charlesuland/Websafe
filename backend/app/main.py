@@ -18,7 +18,7 @@ import app.models
 # after the yield happens after the app shuts down
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    base_metadata = Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
 
     create_test_user()
 
