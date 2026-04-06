@@ -22,15 +22,18 @@ const routes = [
   },
   {
     path: '/dashboard',
-    component: DashboardView
+    component: DashboardView,
+    meta: {requiresAuth: true} //marks a route as protected so you can't use URL to get into it
   },
   {
     path: '/products',
-    component: ProductsView
+    component: ProductsView,
+    meta: {requiresAuth: true}
   },
   {
     path: '/editor/:projectId',
-    component: EditorView
+    component: EditorView,
+    meta: {requiresAuth: true}
   },
   {
     path: '/site/:projectSlug/:pageName',
@@ -42,5 +45,21 @@ const router = createRouter({
   history: createWebHistory(),
   routes
 })
+
+
+
+// client side navigation guard
+router.beforeEach((to) => {
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  const token = localStorage.getItem('token')
+
+  if (requiresAuth && !token) {
+    return '/login'
+  }
+})
+
+
+
+
 
 export default router

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status
 from app.dependencies import get_db
 from app.models import User, Vendor
 from fastapi import Depends
@@ -41,19 +41,51 @@ async def register_user(user_in: UserIn, db=Depends(get_db)):
         .scalars()
         .first()
     )
-    if prev_username or prev_email:
-        return HTTPException(status_code=401)
+    
+    if prev_email:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An account with that email already exists"
+        )
+    
+    if prev_username:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="That username is already taken"
+        )
+
+
 
     hashed_pwd = get_password_hash(user_in.plain_password)
-    user_in.plain_password = hashed_pwd
+    #user_in.plain_password = hashed_pwd
     user_data = user_in.model_dump(exclude={"plain_password"})
     new_user = User(**user_data)
     new_user.hash_password = hashed_pwd
-    new_user.stripe_customer_id = "hello"
+    new_user.stripe_customer_id = "test"
     db.add(new_user)
     db.commit()
-    return user_in
 
+
+
+
+
+    # automatically creates a vendor record for the user
+    # router requires every user to have a vendor before it can make a project
+    new_vendor = Vendor(
+        business_name=new_user.username,
+        email=new_user.email,
+        owner=new_user.id,
+        phone=new_user.phone,
+        stripe_connect_id="",
+        payouts_enabled=False,
+        requirements_due_for_payment=""
+    )
+    db.add(new_vendor)
+    db.commit()
+
+
+    
+    return {"message": "Account created successfully.", "username": new_user.username}
 '''
 Using this as a temporary test user
 

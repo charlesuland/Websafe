@@ -39,15 +39,34 @@ def create_access_token(data: dict):
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-@router.post("/token")
+@router.post("/token", response_model=Token)
 async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[Session, Depends(get_db)],
 ):
-    user = db.query(models.User).filter(models.User.username == form_data.username).first()
+    # Support login by either username or email
+    user = (
+        db.query(models.User)
+        .filter(
+            (models.User.username == form_data.username) |
+            (models.User.email == form_data.username)
+        )
+        .first()
+    )
+ 
+    # Always return a generic 401 regardless of whether the
+    # username or password was wrong. 
     if not user or not verify_password(
         plain_password=form_data.password, hashed_password=user.hash_password
     ):
-        raise HTTPException(status_code=401)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+ 
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+ 
     access_token = create_access_token({"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}

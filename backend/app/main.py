@@ -42,6 +42,7 @@ app.add_middleware(
 
 # need to include the different routes
 app.include_router(auth.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
 app.include_router(projects.projects_router, prefix="/api")
 app.include_router(projects.public_router, prefix="/api")
 app.include_router(products_router, prefix="/api")

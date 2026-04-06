@@ -18,6 +18,10 @@ class User(Base):
     last_name: Mapped[str]
     stripe_customer_id: Mapped[str]
 
+    # Added these two fields becaues they're referenced in schemes.py
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
 
 class SubscriptionStatus(enum.Enum):
     ACTIVE = "active"
