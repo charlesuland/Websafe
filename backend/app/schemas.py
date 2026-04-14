@@ -122,3 +122,48 @@ class VendorOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# --- Plan Schemas ---
+class PlanBase(BaseModel):
+    name: str
+    price_in_cents: int
+    duration: str  # MONTHLY or YEARLY
+    description: str
+    stripe_plan_id: str
+    currency: str = "USD"
+
+
+class PlanCreate(PlanBase):
+    pass
+
+
+class PlanOut(PlanBase):
+    id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# --- Subscription Schemas ---
+class SubscriptionBase(BaseModel):
+    plan_id: int
+    status: str  # ACTIVE, CANCELED, etc.
+    current_period_start: datetime
+    current_period_end: datetime
+    canceled_at: Optional[datetime] = None
+    trial_start: Optional[datetime] = None
+    trial_end: Optional[datetime] = None
+    meta: Optional[dict] = None
+    user_id: int
+
+
+class SubscriptionCreate(BaseModel):
+    plan_id: int
+    user_id: int
+    # Other fields can be set automatically or via input
+
+
+class SubscriptionOut(SubscriptionBase):
+    id: int
+
+    model_config = ConfigDict(from_attributes=True)

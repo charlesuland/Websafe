@@ -3,7 +3,7 @@
 #
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from app.routers import users, projects
+from app.routers import users, projects, subscriptions
 from app import auth
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
@@ -49,3 +49,4 @@ app.include_router(products_router, prefix="/api")
 
 from app.routers.checkout import checkout_router
 app.include_router(checkout_router, prefix="/api")
+app.include_router(subscriptions.router, prefix="/api")
