@@ -20,6 +20,7 @@ const selectedFile = ref(null)
 
 const editingProduct = ref(false)
 const showEditMenu = ref(false)
+const currentImagePreview = ref(null) // For displaying current or selected image
 const token = localStorage.getItem('token')
 
 const productImages = ref({}) // Cache for product image URLs
@@ -48,6 +49,7 @@ onMounted(async () => {
   loading.value = false;
 })
 
+
 async function fetchProductImage(productId) {
   try {
     const res = await fetch(`/api/products/get-product-image?product_id=${productId}`, {
@@ -65,14 +67,20 @@ async function fetchProductImage(productId) {
 
 function getCurrentProductEdits() {
   const product = {
-    project_id: editingProduct.value.project_id, 
     name: editingProduct.value.name,
     description: editingProduct.value.description,
     sale_price: parseInt(editingProduct.value.sale_price) || 0,
     shipping_price: parseInt(editingProduct.value.shipping_price) || 0,
-    stock: parseInt(editingProduct.value.stock) || 0,
-    product_image: null
+    alt_text: editingProduct.value.alt_text,
+    stock: parseInt(editingProduct.value.stock) || 0
   }
+  
+  // Only include project_id for new products
+  if (creatingProduct.value) {
+    product.project_id = editingProduct.value.project_id
+    product.product_image = null
+  }
+  
   return product
 }
 
@@ -82,12 +90,15 @@ function openCreate(project) {
 
   editingProduct.value = {
     project_id: project.id,
+    id: null,
     name: '',
     description: '',
     sale_price: 0,
     shipping_price: 0,
+    alt_text: '',
     stock: 0
   }
+  currentImagePreview.value = null
   showEditMenu.value = true
 }
 
@@ -98,9 +109,7 @@ function openEdit(product, project) {
     ...product
   }
   // Show existing S3 image if available
-  if (productImages.value[product.id]) {
-    editingProduct.value.product_image = productImages.value[product.id]
-  }
+  currentImagePreview.value = productImages.value[product.id] || null
   showEditMenu.value = true
 }
 
@@ -108,10 +117,11 @@ function openEdit(product, project) {
 async function saveProduct() {
   console.log(editingProduct.value.id)
   const productData = getCurrentProductEdits()
+
   let product = null
 
   try {
-    if (creatingProduct.value) {
+    if (editingProduct.value.id === null) {
       // New product
       product = await apiCreateProduct(productData)
 
@@ -141,7 +151,8 @@ async function saveProduct() {
       const formData = new FormData()
       formData.append("file", selectedFile.value)
 
-      const res = await fetch(`/api/products/add-product-picture?product_id=${product.id}`, {
+      // Add picture
+      const res = await fetch(`/api/products/add-product-picture?product_id=${product.id}&alt_text=${encodeURIComponent(editingProduct.value.alt_text || '')}`, {
         method: "POST",
         headers: getAuthHeaders(),
         body: formData
@@ -158,6 +169,7 @@ async function saveProduct() {
     creatingProduct.value = false
     showEditMenu.value = false
     selectedFile.value = null
+    currentImagePreview.value = null
   } catch (error) {
     console.error("Save product error:", error)
     alert("Failed to save product: " + error.message)
@@ -191,7 +203,7 @@ function handleDrop(e) {
   const file = e.dataTransfer.files[0]
   if (file) {
     selectedFile.value = file
-    editingProduct.value.product_image = URL.createObjectURL(file)
+    currentImagePreview.value = URL.createObjectURL(file)
   }
 }
 
@@ -199,7 +211,7 @@ function handleFileSelect(e) {
   const file = e.target.files[0]
   if (file) {
     selectedFile.value = file
-    editingProduct.value.product_image = URL.createObjectURL(file)
+    currentImagePreview.value = URL.createObjectURL(file)
   }
 }
 
@@ -207,6 +219,8 @@ function exitProductDashboard() {
   router.push('/dashboard')
 }
 </script>
+
+
 
 <template>
   <div class="products-page">
@@ -282,15 +296,24 @@ function exitProductDashboard() {
           @click="$refs.fileInput.click()"
           @drop.prevent="handleDrop"
         >
-          <p v-if="!editingProduct.product_image">Drag & drop image here or click to upload</p>
+          <p v-if="!currentImagePreview">Drag & drop image here or click to upload</p>
           <img 
-            v-if="editingProduct.product_image" 
-            :src="editingProduct.product_image" 
+            v-if="currentImagePreview" 
+            :src="currentImagePreview" 
             alt="Product Preview" 
             class="preview-image"
           />
           <input type="file" @change="handleFileSelect" hidden ref="fileInput" />
+          
         </div>
+        <h4 v-if="currentImagePreview" class="edit-menu-field-header">Alt Text</h4>
+          <input 
+            v-if="currentImagePreview"
+            type="text"
+            v-model="editingProduct.alt_text"
+            placeholder="Alt text for the image"
+
+          >
 
         <div class="edit-menu-actions">
           <button @click="saveProduct">Save</button>

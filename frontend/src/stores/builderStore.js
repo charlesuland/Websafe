@@ -58,7 +58,8 @@ export const useBuilderStore = defineStore('builder', () => {
   }
 
   function selectComponent(component) {
-    console.log("Selected component: " + component.id + " " + component.props["text"])
+    const displayText = component.props?.text || component.props?.name || component.type || 'Component'
+    console.log("Selected component: " + component.id + " " + displayText)
     selectedComponent.value = component
   }
 

@@ -3,6 +3,7 @@
     { type: 'text', label: 'Text Block' },
     { type: 'image', label: 'Image Block' },
     { type: 'navbar', label: 'Navbar' }
+    
     // Not implemented yet so just holding off until text and images are solid
     //{ type: 'container', label: 'Container' }
   ]

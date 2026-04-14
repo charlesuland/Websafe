@@ -249,7 +249,8 @@ async def save_draft_pages(
                     project_id=project_id,
                     file_key=file_key,
                     file_type=mime_type,
-                    file_size_bytes=file_size
+                    file_size_bytes=file_size,
+                    alt_text=f"Preview image for project {project_id}"
                 )
 
             db.add(new_metadata)

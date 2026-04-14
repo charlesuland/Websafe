@@ -2,9 +2,10 @@
 
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from app.dependencies import get_db, get_current_active_user, get_s3_client, s3_base_url
-from app.models import ProjectProduct, ProductImage, MediaObjectMetadata, Project
+from app.models import ProjectProduct, ProductImage, MediaObjectMetadata, Project, ProjectPage, DraftProjectPage
 from fastapi import Depends
 import os
+import json
 import uuid as UUID
 from pydantic import BaseModel
 from sqlalchemy import update, select
@@ -19,7 +20,18 @@ class ProductIn(BaseModel):
     sale_price: int
     shipping_price: int
     product_image: int | None = None
+    alt_text: str = ""
     stock: int
+
+
+class ProductUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    sale_price: int | None = None
+    shipping_price: int | None = None
+    stock: int | None = None
+    alt_text: str | None = None
+    # product_image field is managed separately via upload endpoint
 
 
 class ProductID(BaseModel):
@@ -46,9 +58,9 @@ async def create_product(
     db.add(new_product)
     db.commit()
     db.refresh(new_product)
-
-    return new_product
-
+    
+    # Check if we need to create an ecommerce page
+    await ensure_ecommerce_page(db, new_product.project_id)
 
 # increase the product stock by 1
 @products_router.post("/increment-product")
@@ -125,7 +137,23 @@ async def delete_product(
     )
     db.execute(stmt)
     db.commit()
-    return {"status": "success"}
+
+
+# toggle product active status
+@products_router.post("/{product_id}/toggle-active")
+async def toggle_product_active(product_id: int, is_active: bool, db=Depends(get_db)):
+    product = db.get(ProjectProduct, product_id)
+    if not product:
+        raise HTTPException(404, "Product not found")
+    
+    product.is_active = is_active
+    db.commit()
+    
+    # Ensure ecommerce page exists/updated when activating products
+    if is_active:
+        await ensure_ecommerce_page(db, product.project_id)
+    
+    return {"status": "updated", "is_active": is_active}
 
 
 # get a product
@@ -162,15 +190,14 @@ async def get_all_products(project_id: int = Query(...), db=Depends(get_db)):
             if metadata:
                 image_url = f"{s3_base_url}/{metadata.file_key}"
 
-        result.append(
-            {
-                "id": p.id,
-                "name": p.name,
-                "description": p.description,
-                "sale_price": p.sale_price,
-                "image_url": image_url,
-            }
-        )
+        result.append({
+            "id": p.id,
+            "name": p.name,
+            "description": p.description,
+            "sale_price": p.sale_price,
+            "image_url": image_url,
+            "alt_text": p.alt_text,
+        })
     return result
 
 
@@ -193,35 +220,33 @@ async def get_all_published_products(project_id: int = Query(...), db=Depends(ge
 # change a product
 @products_router.post("/update-product")
 async def update_product(
-    product_id: ProductID,
-    product_in: ProductIn,
-    db=Depends(get_db),
-    current_user=Depends(get_current_active_user),
+    product_id: ProductID, product_in: ProductUpdate, db=Depends(get_db)
 ):
-    product = db.get(ProjectProduct, product_id.val)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-
-    project = db.get(Project, product_in.project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-
-    stmt = (
-        update(ProjectProduct)
-        .where(ProjectProduct.id == product_id.val)
-        .values(
-            name=product_in.name,
-            description=product_in.description,
-            sale_price=product_in.sale_price,
-            shipping_price=product_in.shipping_price,
-            product_image=product_in.product_image,
-            stock=product_in.stock,
+    # Build update values dynamically, only including non-None fields
+    update_values = {}
+    if product_in.name is not None:
+        update_values['name'] = product_in.name
+    if product_in.description is not None:
+        update_values['description'] = product_in.description
+    if product_in.sale_price is not None:
+        update_values['sale_price'] = product_in.sale_price
+    if product_in.shipping_price is not None:
+        update_values['shipping_price'] = product_in.shipping_price
+    if product_in.stock is not None:
+        update_values['stock'] = product_in.stock
+    if product_in.alt_text is not None:
+        update_values['alt_text'] = product_in.alt_text
+    
+    # product_image is managed separately via upload endpoint
+    
+    if update_values:
+        stmt = (
+            update(ProjectProduct)
+            .where(ProjectProduct.id == product_id.val)
+            .values(**update_values)
         )
-    )
-    db.execute(stmt)
-    db.commit()
-    return {"status": "success"}
-
+        db.execute(stmt)
+        db.commit()
 
 
 # put a picture into the S3 object server
@@ -229,6 +254,7 @@ async def update_product(
 # this is where the api to s3 will be used
 async def add_product_picture(
     product_id: int,
+    alt_text: str = Query(None),
     file: UploadFile = File(...),
     db=Depends(get_db),
     s3=Depends(get_s3_client),
@@ -252,6 +278,7 @@ async def add_product_picture(
         file_key=file_key,
         file_type=file.content_type,
         file_size_bytes=file_size,
+        alt_text=alt_text
     )
     db.add(metadata)
     db.flush()
@@ -271,3 +298,100 @@ async def get_product_image(product_id: int, db=Depends(get_db)):
     metadata = db.get(MediaObjectMetadata, product.product_image)
 
     return {"url": f"{s3_base_url}{metadata.file_key}"}
+
+
+async def ensure_ecommerce_page(db, project_id: int):
+    # Ensure a project has an ecommerce page if it has active products
+    active_products = db.execute(
+        select(ProjectProduct).where(
+            ProjectProduct.project_id == project_id,
+            ProjectProduct.is_active == True
+        )
+    ).scalars().all()
+    
+    if not active_products:
+        return  # No active products, no need for ecommerce page
+    
+    # Check if ecommerce page already exists in draft pages
+    existing_page = db.execute(
+        select(DraftProjectPage).where(
+            DraftProjectPage.project == project_id,
+            DraftProjectPage.name == "Shop"
+        )
+    ).scalar_one_or_none()
+    
+    if existing_page:
+        # If ecommerce page exists, update it with current products
+        existing_page.layout = create_ecommerce_layout(active_products)
+        db.commit()
+        return
+    
+    # Create new ecommerce page
+    ecommerce_layout = create_ecommerce_layout(active_products)
+    
+    ecommerce_page = DraftProjectPage(
+        project=project_id,
+        name="Shop",
+        layout=ecommerce_layout
+    )
+    
+    db.add(ecommerce_page)
+    db.commit()
+
+
+def create_ecommerce_layout(products):
+    """Create a grid layout for ecommerce products"""
+    layout = []
+    
+    # Add shop header (full width, 1 row)
+    layout.append({
+        "id": str(UUID.uuid4()),
+        "type": "text",
+        "col": 0,
+        "row": 0,
+        "colSpan": 12,
+        "rowSpan": 2,
+        "props": {
+            "text": "Shop Our Products",
+            "style": {
+                "textAlign": "center",
+                "fontSize": "30rem",
+                "color": "#333",
+                "backgroundColor": "#ffffff"
+            }
+        },
+        "children": []
+    })
+    
+    # Add products in a grid (3 columns per row)
+    for i, product in enumerate(products):
+        # Get image URL if available
+        image_url = None
+        if product.product_image:
+            image_url = f"/api/products/get-product-image?product_id={product.id}"
+        
+        # Calculate grid position (3 products per row)
+        col = (i % 3) * 4  # 12 columns / 3 products = 4 columns each
+        row = 2 + (i // 3) * 3  # Start after header, 3 rows per product
+        
+        product_component = {
+            "id": str(UUID.uuid4()),
+            "type": "product",
+            "col": col,
+            "row": row,
+            "colSpan": 4,
+            "rowSpan": 3,
+            "props": {
+                "productId": product.id,
+                "name": product.name,
+                "description": product.description,
+                "price": product.sale_price,
+                "imageUrl": image_url,
+                "altText": product.alt_text or product.name,
+                "inStock": product.stock > 0
+            },
+            "children": []
+        }
+        layout.append(product_component)
+    
+    return layout

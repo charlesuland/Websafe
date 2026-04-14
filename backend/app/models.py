@@ -129,6 +129,7 @@ class ProjectProduct(Base):
     is_published: Mapped[bool] = mapped_column(Boolean, default=False)
     stock: Mapped[int]
     product_image: Mapped[int] = mapped_column(ForeignKey("media_object_metadata.id"), nullable=True)
+    alt_text: Mapped[str] = mapped_column(default="")
 
 # Might not use this, not implemented yet
 class ProductImage(Base):
@@ -205,5 +206,6 @@ class MediaObjectMetadata(Base):
     file_key: Mapped[str]
     file_type: Mapped[str]
     file_size_bytes: Mapped[int]
+    alt_text: Mapped[Optional[str]] = mapped_column(nullable=True)
 
     project = relationship(Project, foreign_keys=[project_id])
