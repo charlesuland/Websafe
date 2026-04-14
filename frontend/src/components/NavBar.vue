@@ -1,14 +1,16 @@
 <template>
     <nav class="navbar">
-        <div class="logo">WebSafe</div>
+        <div>
+            <router-link to="/" class="logo">WebSafe</router-link>
+        </div>
 
         <div class="search">
             <input type="text" placeholder="Search...">
         </div>
 
         <div class="links">
-            <router-link to="/login">Log In</router-link>
-            <a href="#">About Us</a>
+            <router-link to="/login">Log In</router-link>          
+            <router-link to="/about">About Us</router-link>
             <a href="#">Support</a>
         </div>
 
@@ -31,12 +33,15 @@
 
     padding: 24px 30px;
     background:white;
+    border-bottom: 1px solid #E6F0FA;
 }
 
 .logo{
+    text-decoration:none;
     font-size: 20px;
     font-weight: bold;
     color: rgba(0, 112, 217);
+    
 }
 
 .search input{

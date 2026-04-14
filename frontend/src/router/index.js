@@ -6,6 +6,7 @@ import DashboardView from '@/views/DashboardView.vue'
 import PublishedPage from '@/views/PublishedPage.vue'
 import EditorView from '@/views/EditorView.vue'
 import ProductsView from '@/views/ProductsView.vue'
+import AboutUsView from '@/views/AboutUsView.vue'
 
 const routes = [
   {
@@ -24,6 +25,10 @@ const routes = [
     path: '/dashboard',
     component: DashboardView,
     meta: {requiresAuth: true} //marks a route as protected so you can't use URL to get into it
+  },
+  {
+    path: '/about',
+    component: AboutUsView
   },
   {
     path: '/products',
