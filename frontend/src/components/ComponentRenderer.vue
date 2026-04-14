@@ -6,7 +6,8 @@ import EditorNavbar from '@/components/blocks/EditorNavbar.vue'
 import ProductCardBlock from '@/components/blocks/ProductCardBlock.vue'
 
 const props = defineProps({
-  componentData: Object
+  componentData: Object,
+  projectId: String
 })
 
 const componentMap = {
@@ -30,8 +31,10 @@ function updateProp(key, value) {
     v-if="resolvedComponent"
     :is="resolvedComponent"
     v-bind="componentData.props"
+    :projectId="projectId"
     @update:src="value => updateProp('src', value)"
     @update:text="value => updateProp('text', value)"
+    @update:links="value => updateProp('links', value)"
   />
 
   <div v-else class="unknown-component">

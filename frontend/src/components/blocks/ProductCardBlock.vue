@@ -1,5 +1,5 @@
 <script setup>
-defineProps({
+const props = defineProps({
   productId: {
     type: Number,
     required: true
@@ -33,18 +33,18 @@ defineProps({
 
 <template>
   <div class="product-card">
-    <div v-if="imageUrl" class="product-image-container">
-      <img :src="imageUrl" :alt="altText" class="product-image" />
+    <div v-if="props.imageUrl" class="product-image-container">
+      <img :src="props.imageUrl" :alt="props.altText" class="product-image" />
     </div>
     <div v-else class="product-image-placeholder">No Image</div>
     
     <div class="product-info">
-      <h3>{{ name }}</h3>
-      <p class="description">{{ description }}</p>
+      <h3>{{ props.name }}</h3>
+      <p class="description">{{ props.description }}</p>
       <div class="product-footer">
-        <strong class="price">${{ (price / 100).toFixed(2) }}</strong>
+        <strong class="price">${{ (props.price / 100).toFixed(2) }}</strong>
         <div class="stock-status">
-          <span v-if="inStock" class="in-stock">In Stock</span>
+          <span v-if="props.inStock" class="in-stock">In Stock</span>
           <span v-else class="out-of-stock">Out of Stock</span>
         </div>
       </div>
@@ -55,31 +55,28 @@ defineProps({
 <style scoped>
 .product-card {
   background: #ffffff;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: transform 0.2s, box-shadow 0.2s;
   height: 100%;
   width: 100%;
   box-sizing: border-box;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .product-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.08);
 }
 
+/* IMAGE */
 .product-image-container {
   width: 100%;
-  flex: 0 0 auto;
-  height: 120px;
-  background-color: #f0f0f0;
+  aspect-ratio: 1 / 1; /* 🔥 keeps images perfectly square */
+  background-color: #f5f5f5;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .product-image {
@@ -90,8 +87,8 @@ defineProps({
 
 .product-image-placeholder {
   width: 100%;
-  height: 120px;
-  background-color: #e0e0e0;
+  aspect-ratio: 1 / 1;
+  background-color: #e5e5e5;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -99,58 +96,68 @@ defineProps({
   font-size: 0.85rem;
 }
 
+/* CONTENT */
 .product-info {
-  padding: 12px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
+  gap: 6px;
   flex: 1;
-  overflow: hidden;
 }
 
+/* TITLE */
 .product-info h3 {
-  font-size: 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
   color: #222;
-  margin: 0 0 4px 0;
-  white-space: nowrap;
+  margin: 0;
+
+  /* truncate nicely */
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
+/* DESCRIPTION */
 .description {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: #666;
-  margin: 0 0 8px 0;
-  flex: 1;
-  overflow: hidden;
+
+  /* 🔥 multi-line truncation */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
+/* FOOTER */
 .product-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-top: auto;
-  flex-shrink: 0;
 }
 
+/* PRICE */
 .price {
   font-size: 1rem;
-  color: #2f7df6;
-  font-weight: bold;
+  font-weight: 600;
+  color: #2563eb;
 }
 
+/* STOCK */
 .stock-status {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
+  text-transform: uppercase;
 }
 
 .in-stock {
-  color: #27ae60;
+  color: #22c55e;
 }
 
 .out-of-stock {
-  color: #e74c3c;
+  color: #ef4444;
 }
 </style>

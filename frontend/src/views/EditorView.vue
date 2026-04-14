@@ -9,6 +9,7 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
 import html2canvas from 'html2canvas'
+import { getAuthHeaders } from '@/auth'
 
 const route = useRoute()
 const projectId = route.params.projectId
@@ -20,13 +21,11 @@ const router = useRouter()
 const store = useBuilderStore()
 
 onMounted(async () => {
-  const token = localStorage.getItem('token')
-
   const res = await fetch(`/api/projects/${projectId}/get-draft-pages`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
+      ...getAuthHeaders()
     },
   })
   const pages = await res.json()
@@ -35,11 +34,11 @@ onMounted(async () => {
   store.setPages(pages)
 })
 
-async function saveDraft() {
+async function saveDraft({ showStatus = true } = {}) {
   const start = Date.now()
-  savingState.value = 'saving'
-
-  const token = localStorage.getItem('token')
+  if (showStatus) {
+    savingState.value = 'saving'
+  }
 
   store.updateCurrentPageLayout()
 
@@ -49,7 +48,7 @@ async function saveDraft() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
+      ...getAuthHeaders()
     },
     body: JSON.stringify({
       pages: store.pages,
@@ -58,20 +57,59 @@ async function saveDraft() {
   })
 
   if (!res.ok) {
-    console.error("Save failed", await res.text())
+    console.error('Save failed', await res.text())
+    if (showStatus) {
+      savingState.value = null
+    }
+    return false
   }
 
-  const elapsed = Date.now() - start
-  const minDuration = 600
-
-  setTimeout(() => {
-    savingState.value = 'saved'
+  if (showStatus) {
+    const elapsed = Date.now() - start
+    const minDuration = 600
 
     setTimeout(() => {
-      savingState.value = null
-    }, 1200)
+      savingState.value = 'saved'
 
-  }, Math.max(0, minDuration - elapsed))
+      setTimeout(() => {
+        savingState.value = null
+      }, 1200)
+
+    }, Math.max(0, minDuration - elapsed))
+  }
+
+  return true
+}
+
+async function publishLayout() {
+  savingState.value = 'saving'
+
+  store.updateCurrentPageLayout()
+  const draftSaved = await saveDraft({ showStatus: false })
+  if (!draftSaved) {
+    savingState.value = null
+    alert('Unable to save draft before publishing.')
+    return
+  }
+
+  const res = await fetch(`/api/projects/${projectId}/publish`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeaders()
+    }
+  })
+
+  if (!res.ok) {
+    console.error('Publish failed', await res.text())
+    savingState.value = null
+    alert('Publish failed. Please try again.')
+    return
+  }
+
+  savingState.value = 'published'
+  setTimeout(() => {
+    savingState.value = null
+  }, 1500)
 }
 
 async function captureCanvas() {
@@ -92,12 +130,6 @@ async function captureCanvas() {
 async function exitEditor() {
   await saveDraft()
   router.push('/dashboard')
-}
-
-async function publishLayout() {
-  await fetch(`/api/projects/${projectId}/publish`, {
-    method: 'POST'
-  })
 }
 
 function handleKeyDown(e) {
@@ -152,7 +184,7 @@ onUnmounted(() => {
 
       <div class="right">
         <button class="secondary" @click="saveDraft">Save</button>
-        <button class="primary" @click="publishLayout">Publish</button>
+        <button class="primary" @click="publishLayout" :disabled="savingState === 'saving'">Publish</button>
       </div>
     </header>
 
@@ -166,7 +198,7 @@ onUnmounted(() => {
 
     <main class="canvas-area">
       <div class="canvas-wrapper" ref="canvasRef">
-        <BuilderCanvas :key="store.renderKey" />
+        <BuilderCanvas :key="store.renderKey" :projectId="projectId" />
       </div>
     </main>
 
@@ -179,6 +211,9 @@ onUnmounted(() => {
     </div>
     <div v-if="savingState === 'saved'" class="save-icon saved">
       Saved!
+    </div>
+    <div v-if="savingState === 'published'" class="save-icon published">
+      Published!
     </div>
   </div>
 </template>
@@ -305,6 +340,10 @@ onUnmounted(() => {
 
   .saved {
     background: rgba(40, 167, 69, 0.9);
+  }
+
+  .published {
+    background: rgba(16, 185, 129, 0.95);
   }
 
   @keyframes fadeIn {

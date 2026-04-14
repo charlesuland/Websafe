@@ -116,6 +116,35 @@ class ProjectPage(Base):
     layout: Mapped[dict] = mapped_column(JSON)
 
 
+
+# --- Security Log and Report Models ---
+class SecurityLog(Base):
+    __tablename__ = "security_logs"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
+    action: Mapped[str] = mapped_column()
+    details: Mapped[str] = mapped_column(nullable=True)
+    ip_address: Mapped[str] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+
+class SecurityReport(Base):
+    __tablename__ = "security_reports"
+    report_id: Mapped[str] = mapped_column(unique=True, index=True)
+    generated_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=True)
+    db_actions: Mapped[str] = mapped_column(nullable=True)  # JSON string or summary
+    website_actions: Mapped[str] = mapped_column(nullable=True)  # JSON string or summary
+    user_logins: Mapped[str] = mapped_column(nullable=True)  # JSON string or summary
+    role_modifications: Mapped[str] = mapped_column(nullable=True)  # JSON string or summary
+    xss_test_passed: Mapped[bool] = mapped_column(default=True)
+    sqli_test_passed: Mapped[bool] = mapped_column(default=True)
+    csrf_test_passed: Mapped[bool] = mapped_column(default=True)
+    urgent: Mapped[bool] = mapped_column(default=False)
+    status: Mapped[str] = mapped_column(default="pass")  # pass/fail
+    notes: Mapped[str] = mapped_column(nullable=True)
+  
+
 class ProjectProduct(Base):
     __tablename__ = "project_products"
 

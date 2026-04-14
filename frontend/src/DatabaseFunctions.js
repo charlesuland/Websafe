@@ -134,6 +134,21 @@ async function apiDeleteProduct(productId) {
     return await res.json()
 }
 
+async function apiUploadImage() {
+    const res = await fetch('/api/products/upload-image', {
+        method: 'POST',
+        headers: {
+            ...getAuthHeaders()
+        }
+    })
+
+    if (!res.ok) {
+        throw new Error(await res.text())
+    }
+
+    return await res.json()
+}
+
 
 export {
     apiFetchProjects,
@@ -145,5 +160,7 @@ export {
     apiFetchAllPublishedProducts,
     apiUpdateProduct,
     apiCreateProduct,
-    apiDeleteProduct
+    apiDeleteProduct,
+
+    apiUploadImage
 }

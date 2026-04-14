@@ -7,7 +7,6 @@ from app.routers import users, projects, subscriptions
 from app import auth
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.routers.users import create_test_user
 from app.routers.products import products_router
 from app.routers.orders import order_router
 from app.routers.vendors import vendor_router
@@ -22,8 +21,6 @@ import app.models
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
 
-    create_test_user()
-
     print("APP STARTING...\nCREATING TABLES")
     yield
     print("APP SHUTTING DOWN")
@@ -36,7 +33,7 @@ app = FastAPI(lifespan=lifespan)
 # When the application is expanded, the list of hosts (origins) may need to increase
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -53,4 +50,7 @@ app.include_router(vendor_router, prefix="/api")
 
 from app.routers.checkout import checkout_router
 app.include_router(checkout_router, prefix="/api")
-app.include_router(subscriptions.router, prefix="/api")
+
+# Register security router
+from app.routers import security
+app.include_router(security.router, prefix="/api")

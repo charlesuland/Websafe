@@ -51,145 +51,79 @@ async function openProject(project_id) {
   console.log("Opening project: " + project_id)
   router.push(`/editor/${project_id}`)
 }
+
+async function viewPublishedSite(project_id) {
+  console.log("Viewing published site for project:", project_id, typeof project_id)
+  // Navigate to the published Home page
+  const projectIdStr = String(project_id)
+  console.log("Navigating to:", `/site/${projectIdStr}/Home`)
+  router.push(`/site/${projectIdStr}/Home`)
+}
 </script>
 
 <template>
-  <div class="dashboard">
+  <div class="dashboard-content">
+    <div class="content-header">
+      <h2>Your Projects</h2>
 
-    <header class="topbar">
-      <h1>WebSafe</h1>
-      <div class="user">Account</div>
-    </header>
+      <button class="primary" @click="createProject">
+        + New Project
+      </button>
+    </div>
 
-    <div class="body">
+    <div v-if="loading" class="loading-state">
+      Loading projects...
+    </div>
 
-      <aside class="sidebar">
-        <button>Projects</button>
-        <button>Analytics</button>
-        <button>Settings</button>
-        <button @click="router.push('/products')"> E-Commerce Products</button>
-      </aside>
+    <div v-else-if="projects.length === 0" class="empty-state">
+      <p>No projects yet. Create your first one</p>
+    </div>
 
-      <main class="content">
-
-        <div class="content-header">
-          <h2>Your Projects</h2>
-          
-          <button class="primary" @click="createProject">
-            + New Project
-          </button>
+    <div v-else class="grid">
+      <div
+        v-for="project in projects"
+        :key="project.id"
+        class="card"
+      >
+        <div class="card-header">
+          <h3 class="project-text">{{ project.name }}</h3>
+          <span :class="['status', project.is_live ? 'live' : 'draft']">
+            {{ project.is_live ? 'Live' : 'Draft' }}
+          </span>
         </div>
 
-        <div v-if="loading">Loading projects...</div>
-
-        <div v-else-if="projects.length === 0">
-          <p>No projects yet. Create your first one</p>
+        <div class="card-body">
+          <img
+            v-if="project.preview_image"
+            :src="project.preview_image"
+            class="thumbnail"
+          />
+          <p class="project-text">Last Updated:</p>
+          <strong>{{ project.last_updated }}</strong>
         </div>
 
-        <div v-else class="grid">
-          <div
-            v-for="project in projects"
-            :key="project.id"
-            class="card"
-          >
-            <div class="card-header">
-              <h3 class="project-text">{{ project.name }}</h3>
-              <span :class="['status', project.is_live ? 'live' : 'draft']">
-                {{ project.is_live ? 'Live' : 'Draft' }}
-              </span>
-            </div>
-
-            <div class="card-body">
-              <img 
-                v-if="project.preview_image"
-                :src="project.preview_image"
-                class="thumbnail"
-              />
-              <p class="project-text">Last Updated:</p>
-              <strong>{{ project.last_updated }}</strong>
-            </div>
-
-            <div class="card-body">
-              <p class="project-text">Last Published:</p>
-              <strong>{{ project.last_published }}</strong>
-            </div>
-
-            <div class="card-actions">
-              <button @click="openProject(project.id)">Edit</button>
-              <button class="delete" @click="deleteProject(project.id, project.name)">Delete</button>
-            </div>
-          </div>
+        <div class="card-body">
+          <p class="project-text">Last Published:</p>
+          <strong>{{ project.last_published }}</strong>
         </div>
 
-      </main>
+        <div class="card-actions">
+          <button @click="openProject(project.id)">Edit</button>
+          <button v-if="project.is_live" @click="viewPublishedSite(project.id)" class="view-site">View Site</button>
+          <button class="delete" @click="deleteProject(project.id, project.name)">Delete</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.dashboard {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-}
-
-.topbar {
-  height: 60px;
-  background: #111;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-}
-
-.body {
-  display: flex;
-  flex: 1;
-}
-
-.project-text {
-  color: rgb(90, 140, 255);
-}
-
-.thumbnail {
-  width: 100%;
-  height: auto;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
-.sidebar {
-  width: 220px;
-  background: #1e1e1e;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.sidebar button {
-  background: transparent;
-  color: white;
-  border: none;
-  text-align: left;
-  padding: 10px;
-  cursor: pointer;
-}
-
-.content {
-  flex: 1;
+.dashboard-content {
   padding: 30px;
-  background: #f5f5f5;
-  overflow-y: auto;
 }
 
-.content-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  color: rgb(90, 140, 255);
+.content-header h2 {
+  margin: 0;
 }
 
 .primary {
@@ -225,23 +159,28 @@ async function openProject(project_id) {
 
 .status {
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: 12px;
   font-size: 12px;
+  font-weight: bold;
 }
 
 .status.live {
-  background: #d4f8d4;
-  color: green;
+  background: #d4edda;
+  color: #155724;
 }
 
 .status.draft {
-  background: #eee;
-  color: #696969;
+  background: #fff3cd;
+  color: #856404;
+}
+
+.card-body {
+  flex: 1;
 }
 
 .card-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   margin-top: auto;
 }
 
@@ -249,11 +188,40 @@ async function openProject(project_id) {
   flex: 1;
   padding: 8px;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
 }
 
 .delete {
-  background-color: rgb(255, 85, 85);
+  background: #dc3545;
+  color: white;
+}
+
+.view-site {
+  background: #28a745;
+  color: white;
+}
+
+.project-text {
+  color: rgb(90, 140, 255);
+}
+
+.thumbnail {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.empty-state p {
+  font-size: 1.1rem;
+  margin: 0;
 }
 </style>

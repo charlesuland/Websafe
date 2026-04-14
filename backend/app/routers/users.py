@@ -66,9 +66,6 @@ async def register_user(user_in: UserIn, db=Depends(get_db)):
     db.commit()
 
 
-
-
-
     # automatically creates a vendor record for the user
     # router requires every user to have a vendor before it can make a project
     new_vendor = Vendor(
@@ -82,53 +79,5 @@ async def register_user(user_in: UserIn, db=Depends(get_db)):
     )
     db.add(new_vendor)
     db.commit()
-
-
     
     return {"message": "Account created successfully.", "username": new_user.username}
-'''
-Using this as a temporary test user
-
-username/email: jared
-password: jmsjms
-'''
-
-def create_test_user():
-    db = SessionLocal()
-
-    existingUser = db.execute(
-        select(User).where(User.username == "jared")
-    ).scalar_one_or_none()
-
-    existingVendor = db.execute(
-        select(Vendor).where(Vendor.business_name == "name")
-    ).scalar_one_or_none()
-
-    user = User(
-            username="jared",
-            email="jared@sandfoss.net",
-            hash_password=get_password_hash("jmsjms"),
-            first_name="Jared",
-            last_name="Sandfoss",
-            phone="8599409574",
-            stripe_customer_id="test"
-        )
-
-    if not existingUser:
-        db.add(user)
-        
-
-    if not existingVendor:
-        vendor = Vendor(
-            business_name="name",
-            email="email",
-            owner=1,
-            phone=user.phone,
-            stripe_connect_id="hello",
-            payouts_enabled=False,
-            requirements_due_for_payment="hello"
-        )
-        db.add(vendor)
-
-    db.commit()
-    db.close()

@@ -1,7 +1,7 @@
 # this file was revised or written in part by Copilot
 
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File
-from app.dependencies import get_db, get_current_active_user, get_s3_client, s3_base_url
+from app.dependencies import get_db, get_current_active_user, get_s3_client, s3_base_url, upload_image_to_s3
 from app.models import ProjectProduct, ProductImage, MediaObjectMetadata, Project, ProjectPage, DraftProjectPage
 from fastapi import Depends
 import os
@@ -60,7 +60,21 @@ async def create_product(
     db.refresh(new_product)
     
     # Check if we need to create an ecommerce page
-    await ensure_ecommerce_page(db, new_product.project_id)
+    await ensure_ecommerce_page(new_product.project_id, db)
+
+    return {
+        "id": new_product.id,
+        "project_id": new_product.project_id,
+        "name": new_product.name,
+        "description": new_product.description,
+        "sale_price": new_product.sale_price,
+        "shipping_price": new_product.shipping_price,
+        "alt_text": new_product.alt_text,
+        "stock": new_product.stock,
+        "product_image": new_product.product_image,
+        "is_active": new_product.is_active,
+        "is_published": new_product.is_published,
+    }
 
 # increase the product stock by 1
 @products_router.post("/increment-product")
@@ -173,13 +187,11 @@ async def get_all_products(project_id: int = Query(...), db=Depends(get_db)):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    stmt = (
+    products = db.execute(
         select(ProjectProduct)
         .where(ProjectProduct.project_id == project_id)
         .where(ProjectProduct.is_active)
-    )
-
-    products = db.execute(stmt).scalars().all()
+    ).scalars().all()
 
     result = []
     for p in products:
@@ -248,6 +260,24 @@ async def update_product(
         db.execute(stmt)
         db.commit()
 
+    product = db.get(ProjectProduct, product_id.val)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    return {
+        "id": product.id,
+        "project_id": product.project_id,
+        "name": product.name,
+        "description": product.description,
+        "sale_price": product.sale_price,
+        "shipping_price": product.shipping_price,
+        "alt_text": product.alt_text,
+        "stock": product.stock,
+        "product_image": product.product_image,
+        "is_active": product.is_active,
+        "is_published": product.is_published,
+    }
+
 
 # put a picture into the S3 object server
 @products_router.post("/add-product-picture")
@@ -270,8 +300,8 @@ async def add_product_picture(
 
     file_size = len(file_bytes)
 
-    obj = s3.Object("websafe", file_key)
-    obj.put(Body=file_bytes, ContentType=file.content_type)
+    # Upload to S3 using the reusable function
+    upload_url = await upload_image_to_s3(file_bytes, file_key, file.content_type, s3)
 
     metadata = MediaObjectMetadata(
         project_id=product.project_id,
@@ -285,7 +315,7 @@ async def add_product_picture(
     product.product_image = metadata.id
     db.commit()
 
-    return {"status": "success", "url": f"{s3_base_url}{file_key}"}
+    return {"status": "success", "image_url": upload_url}
 
 
 # return the image for a project
@@ -297,10 +327,10 @@ async def get_product_image(product_id: int, db=Depends(get_db)):
 
     metadata = db.get(MediaObjectMetadata, product.product_image)
 
-    return {"url": f"{s3_base_url}{metadata.file_key}"}
+    return {"image_url": f"{s3_base_url}{metadata.file_key}"}
 
 
-async def ensure_ecommerce_page(db, project_id: int):
+async def ensure_ecommerce_page(project_id: int, db=Depends(get_db)):
     # Ensure a project has an ecommerce page if it has active products
     active_products = db.execute(
         select(ProjectProduct).where(
@@ -322,12 +352,12 @@ async def ensure_ecommerce_page(db, project_id: int):
     
     if existing_page:
         # If ecommerce page exists, update it with current products
-        existing_page.layout = create_ecommerce_layout(active_products)
+        existing_page.layout = create_ecommerce_layout(active_products, db)
         db.commit()
         return
     
     # Create new ecommerce page
-    ecommerce_layout = create_ecommerce_layout(active_products)
+    ecommerce_layout = create_ecommerce_layout(active_products, db)
     
     ecommerce_page = DraftProjectPage(
         project=project_id,
@@ -339,23 +369,23 @@ async def ensure_ecommerce_page(db, project_id: int):
     db.commit()
 
 
-def create_ecommerce_layout(products):
+def create_ecommerce_layout(products: list[ProjectProduct], db=Depends(get_db)):
     """Create a grid layout for ecommerce products"""
     layout = []
     
-    # Add shop header (full width, 1 row)
+    # Add shop header
     layout.append({
         "id": str(UUID.uuid4()),
         "type": "text",
-        "col": 0,
-        "row": 0,
+        "col": 1,
+        "row": 1,
         "colSpan": 12,
         "rowSpan": 2,
         "props": {
             "text": "Shop Our Products",
             "style": {
                 "textAlign": "center",
-                "fontSize": "30rem",
+                "fontSize": "30px",
                 "color": "#333",
                 "backgroundColor": "#ffffff"
             }
@@ -368,11 +398,13 @@ def create_ecommerce_layout(products):
         # Get image URL if available
         image_url = None
         if product.product_image:
-            image_url = f"/api/products/get-product-image?product_id={product.id}"
+            metadata = db.get(MediaObjectMetadata, product.product_image)
+            if metadata:
+                image_url = f"{s3_base_url}/{metadata.file_key}"
         
         # Calculate grid position (3 products per row)
-        col = (i % 3) * 4  # 12 columns / 3 products = 4 columns each
-        row = 2 + (i // 3) * 3  # Start after header, 3 rows per product
+        col = 1 + (i % 3) * 4  # 12 columns / 3 products = 4 columns each
+        row = 3 + (i // 3) * 3  # Start after header, 3 rows per product
         
         product_component = {
             "id": str(UUID.uuid4()),
@@ -380,7 +412,7 @@ def create_ecommerce_layout(products):
             "col": col,
             "row": row,
             "colSpan": 4,
-            "rowSpan": 3,
+            "rowSpan": 6,
             "props": {
                 "productId": product.id,
                 "name": product.name,

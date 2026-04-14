@@ -11,6 +11,10 @@ const canvas = ref(null)
 const resizing = ref(null)
 const dragging = ref(null)
 
+const props = defineProps({
+  projectId: String
+})
+
 const componentDefaults = {
   text: {
     colSpan: 4,
@@ -43,7 +47,7 @@ const componentDefaults = {
     colSpan: 12,
     rowSpan: 1,
     props: {
-      links: ["Home", "About"],
+      links: ["Home"],
       style: {
         backgroundColor: "#ffffff",
         color: "#000000"
@@ -215,11 +219,11 @@ function getGridPosition(event, canvas, component = null) {
         @click="store.selectComponent(component)"
         
         :style="{
-          gridColumn: (component.col + 1) + ' / span ' + component.colSpan,
-          gridRow: (component.row + 1) + ' / span ' + component.rowSpan
+          gridColumn: (component.col) + ' / span ' + component.colSpan,
+          gridRow: (component.row) + ' / span ' + component.rowSpan
         }"
       >
-        <ComponentRenderer :componentData="component" />
+        <ComponentRenderer :componentData="component" :projectId="projectId" />
         <div class="resize-handle" @mousedown="startResize($event, component)" draggable="false"></div>
       </div>
     </VueDraggable>

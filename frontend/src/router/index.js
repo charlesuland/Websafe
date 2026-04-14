@@ -2,10 +2,13 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LandingPage from '../views/LandingPage.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '@/views/RegisterView.vue'
+import DashboardLayout from '@/components/DashboardLayout.vue'
 import DashboardView from '@/views/DashboardView.vue'
+import ProductsView from '@/views/ProductsView.vue'
 import PublishedPage from '@/views/PublishedPage.vue'
 import EditorView from '@/views/EditorView.vue'
-import ProductsView from '@/views/ProductsView.vue'
+
+import SecurityDashboard from '@/views/SecurityDashboard.vue'
 import AboutUsView from '@/views/AboutUsView.vue'
 
 const routes = [
@@ -23,17 +26,26 @@ const routes = [
   },
   {
     path: '/dashboard',
-    component: DashboardView,
-    meta: {requiresAuth: true} //marks a route as protected so you can't use URL to get into it
-  },
-  {
+    component: DashboardLayout,
+    meta: {requiresAuth: true},
+    children: [
+      {
+        path: '',
+        component: DashboardView
+      },
+      {
     path: '/about',
     component: AboutUsView
   },
   {
-    path: '/products',
-    component: ProductsView,
-    meta: {requiresAuth: true}
+        path: '/products',
+        component: ProductsView
+      },
+      {
+        path: '/security',
+        component: SecurityDashboard
+      }
+    ]
   },
   {
     path: '/editor/:projectId',
@@ -52,7 +64,6 @@ const router = createRouter({
 })
 
 
-
 // client side navigation guard
 router.beforeEach((to) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
@@ -62,9 +73,6 @@ router.beforeEach((to) => {
     return '/login'
   }
 })
-
-
-
 
 
 export default router
