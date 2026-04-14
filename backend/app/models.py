@@ -39,11 +39,10 @@ class Subscription(Base):
     )
     current_period_start: Mapped[datetime]
     current_period_end: Mapped[datetime] = mapped_column(index=True)
-    # is_active: Mapped[bool] = mapped_column(default=True)
-    # stripe_id: Mapped[str] = mapped_column(unique=True, nullable=True)
-    canceled_at: Mapped[datetime]
-    trial_start: Mapped[datetime]
-    trial_end: Mapped[datetime]
+    canceled_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    trial_start: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    trial_end: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    stripe_subscription_id: Mapped[Optional[str]] = mapped_column(unique=True, nullable=True)
     meta: Mapped[dict] = mapped_column(JSON)
 
     # user.id for database and actual sql purposes

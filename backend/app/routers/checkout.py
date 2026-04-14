@@ -2,10 +2,7 @@
 
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, EmailStr
-from typing import List, Optional
 
 from app.dependencies import get_db, get_current_user
 from app.models import (
@@ -16,35 +13,9 @@ from app.models import (
     ProjectCustomer,
     Vendor,
 )
+from app.schemas import CheckoutCreateRequest, CheckoutCreateResponse
 
 checkout_router = APIRouter(prefix="/checkout", tags=["checkout"])
-
-
-class CheckoutItem(BaseModel):
-    product_id: int
-    quantity: int = 1
-
-
-class CheckoutCustomer(BaseModel):
-    email: EmailStr
-    name: str
-    phone: Optional[str] = ""
-
-
-class CheckoutCreateRequest(BaseModel):
-    project_id: int
-    items: List[CheckoutItem]
-    customer: CheckoutCustomer
-    payment_method: Optional[str] = "manual"
-
-
-class CheckoutCreateResponse(BaseModel):
-    order_id: int
-    item_price_cents: int
-    shipping_price_cents: int
-    platform_fee_cents: int
-    vendor_amount_cents: int
-    payment_status: bool
 
 
 @checkout_router.post(

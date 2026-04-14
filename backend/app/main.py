@@ -9,6 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 from app.routers.users import create_test_user
 from app.routers.products import products_router
+from app.routers.orders import order_router
+from app.routers.vendors import vendor_router
 
 # necessary for the app to build the models
 import app.models
@@ -46,6 +48,8 @@ app.include_router(users.router, prefix="/api")
 app.include_router(projects.projects_router, prefix="/api")
 app.include_router(projects.public_router, prefix="/api")
 app.include_router(products_router, prefix="/api")
+app.include_router(order_router, prefix="/api")
+app.include_router(vendor_router, prefix="/api")
 
 from app.routers.checkout import checkout_router
 app.include_router(checkout_router, prefix="/api")

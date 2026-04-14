@@ -97,6 +97,34 @@ class OrderOut(OrderBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+# --- Checkout Schemas ---
+class CheckoutItem(BaseModel):
+    product_id: int
+    quantity: int = 1
+
+
+class CheckoutCustomer(BaseModel):
+    email: EmailStr
+    name: str
+    phone: Optional[str] = ""
+
+
+class CheckoutCreateRequest(BaseModel):
+    project_id: int
+    items: List[CheckoutItem]
+    customer: CheckoutCustomer
+    payment_method: Optional[str] = "manual"
+
+
+class CheckoutCreateResponse(BaseModel):
+    order_id: int
+    item_price_cents: int
+    shipping_price_cents: int
+    platform_fee_cents: int
+    vendor_amount_cents: int
+    payment_status: bool
+
+
 class VendorAddressBase(BaseModel):
     house_number: int
     street_name: str
@@ -153,6 +181,7 @@ class SubscriptionBase(BaseModel):
     canceled_at: Optional[datetime] = None
     trial_start: Optional[datetime] = None
     trial_end: Optional[datetime] = None
+    stripe_subscription_id: Optional[str] = None
     meta: Optional[dict] = None
     user_id: int
 
