@@ -14,11 +14,11 @@ function navigateTo(tab) {
   if (tab === 'projects') {
     router.push('/dashboard')
   } else if (tab === 'products') {
-    router.push('/products')
+    router.push('/dashboard/products')
   } else if (tab === 'analytics') {
     // Future analytics page
   } else if (tab === 'settings') {
-    // Future settings page
+    router.push('/dashboard/settings')
   } else if (tab === 'security') {
     router.push('/security')
   }
@@ -31,11 +31,11 @@ import { useRoute } from 'vue-router'
 const route = useRoute()
 
 onMounted(() => {
-  if (route.path === '/products') {
-    activeTab.value = 'products'
-  } else if (route.path === '/dashboard') {
-    activeTab.value = 'projects'
-  }
+  const path = route.path
+  if (path === '/dashboard')          activeTab.value = 'projects'
+  else if (path === '/dashboard/products')  activeTab.value = 'products'
+  else if (path === '/dashboard/security')  activeTab.value = 'security'
+  else if (path === '/dashboard/settings')  activeTab.value = 'settings'
 })
 </script>
 

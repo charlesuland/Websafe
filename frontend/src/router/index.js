@@ -11,6 +11,8 @@ import EditorView from '@/views/EditorView.vue'
 import SecurityDashboard from '@/views/SecurityDashboard.vue'
 import AboutUsView from '@/views/AboutUsView.vue'
 
+import SettingsView from '@/views/SettingsView.vue'
+
 const routes = [
   {
     path: '/',
@@ -25,6 +27,10 @@ const routes = [
     component: RegisterView
   },
   {
+    path: '/about',
+    component: AboutUsView
+  },
+  {
     path: '/dashboard',
     component: DashboardLayout,
     meta: {requiresAuth: true},
@@ -34,17 +40,17 @@ const routes = [
         component: DashboardView
       },
       {
-    path: '/about',
-    component: AboutUsView
-  },
-  {
-        path: '/products',
+        path: 'products',
         component: ProductsView
       },
       {
-        path: '/security',
+        path: 'security',
         component: SecurityDashboard
-      }
+      },
+      {
+        path:'settings',
+        component: SettingsView
+      },
     ]
   },
   {
