@@ -75,10 +75,22 @@ router.beforeEach((to) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
   const token = localStorage.getItem('token')
 
-  if (requiresAuth && !token) {
-    return '/login'
+  if (requiresAuth) {
+    if (!token) return '/login'
+
+    // Check expiry without a library
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      if (payload.exp * 1000 < Date.now()) {
+        localStorage.removeItem('token')
+        return '/login'
+      }
+    } catch {
+      // Malformed token
+      localStorage.removeItem('token')
+      return '/login'
+    }
   }
 })
-
 
 export default router

@@ -37,13 +37,22 @@ onMounted(() => {
   else if (path === '/dashboard/security')  activeTab.value = 'security'
   else if (path === '/dashboard/settings')  activeTab.value = 'settings'
 })
+
+
+// Logs user out of account, deleted token
+function logout() {
+  localStorage.removeItem('token');
+  router.push('/')
+}
 </script>
 
 <template>
   <div class="dashboard-layout">
     <header class="topbar">
       <h1>WebSafe</h1>
-      <div class="user">Account</div>
+      <div class = "user">
+        <button class = "logout-btn" @click="logout">Log Out</button>
+      </div>
     </header>
 
     <div class="body">
@@ -142,5 +151,23 @@ onMounted(() => {
   flex: 1;
   background: #f5f5f5;
   overflow-y: auto;
+}
+
+
+/* Logout Styling */
+.logout-btn {
+  background: transparent;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.6);
 }
 </style>

@@ -60,8 +60,7 @@ function onToggleActive() {
   transition: transform 0.24s ease, box-shadow 0.24s ease;
   overflow: hidden;
   min-height: 380px;
-  max-height: 380px;
-  height: 380px;
+  max-height: 480px; 
   width: 300px;
   box-sizing: border-box;
   justify-content: flex-start;
