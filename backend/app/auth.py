@@ -1,8 +1,8 @@
 from jose import jwt, JWTError
 from datetime import datetime, timezone, timedelta
-from fastapi import HTTPException, Depends, APIRouter, status
+from fastapi import HTTPException, Depends, APIRouter, status, Request
 from app.dependencies import get_db
-from typing import Annotated
+from typing import Annotated, Optional
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -38,9 +38,32 @@ def create_access_token(data: dict):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
+# function to log security event in database
+def log_security_event(
+    db: Session,
+    user_id: Optional[int],
+    action: str,
+    request: Request,
+    details: str | None = None,    
+):
+    event = models.SecurityLog(
+        user_id=user_id,
+        action=action,
+        details=details or request.headers.get("user-agent"),
+        ip_address= request.client.host 
+            if request.client 
+                else None,
+    )
+    db.add(event)
+    db.commit()
+
+
+
+
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(
+    request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[Session, Depends(get_db)],
 ):
@@ -56,9 +79,15 @@ async def login_for_access_token(
  
     # Always return a generic 401 regardless of whether the
     # username or password was wrong. 
-    if not user or not verify_password(
-        plain_password=form_data.password, hashed_password=user.hash_password
-    ):
+    if not user or not verify_password(plain_password=form_data.password, hashed_password=user.hash_password):
+        log_security_event(
+            db=db,
+            user_id=getattr(user, "id", None),
+            action="failed_login",
+            request=request,
+        )
+
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -67,6 +96,13 @@ async def login_for_access_token(
  
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+    
+    log_security_event(
+        db=db,
+        user_id=user.id,
+        action="login",
+        request=request,
+    )
  
     access_token = create_access_token({"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
