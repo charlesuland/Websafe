@@ -20,7 +20,7 @@ function navigateTo(tab) {
   } else if (tab === 'settings') {
     router.push('/dashboard/settings')
   } else if (tab === 'security') {
-    router.push('/security')
+    router.push('/dashboard/security')
   }
 }
 

@@ -14,6 +14,8 @@ from app.routers.vendors import vendor_router
 # necessary for the app to build the models
 import app.models
 
+#automatically creates tables that are added to models
+Base.metadata.create_all(bind=engine)
 
 # this function happens on startup. Before the yield happens before the app runs
 # after the yield happens after the app shuts down

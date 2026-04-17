@@ -150,11 +150,26 @@ async function apiUploadImage() {
 }
 
 
+// function to fetch data from security/activity
+async function apiFetchSecurityActivity(action = null) {
+    const params = new URLSearchParams()
+    if (action) params.set('action', action)
+    
+    const res = await fetch(`/api/security/activity?${params}`, {
+        headers: getAuthHeaders()
+    })
+    if (!res.ok) throw new Error(await res.text())
+    return res.json()
+}
+
+
 export {
+    // Project APIs
     apiFetchProjects,
     apiCreateProject,
     apiDeleteProject,
 
+    // Product APIs
     apiFetchAllProducts,
     apiFetchProduct,
     apiFetchAllPublishedProducts,
@@ -162,5 +177,9 @@ export {
     apiCreateProduct,
     apiDeleteProduct,
 
-    apiUploadImage
+    // Image APIs
+    apiUploadImage,
+
+    // Security Activity APIs
+    apiFetchSecurityActivity
 }
