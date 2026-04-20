@@ -20,14 +20,16 @@ const props = defineProps({
 
 <template>
   <div class="published-image-block">
-    <img
-      v-if="src"
-      :src="src"
-      :alt="alt"
-      class="published-image"
-    />
-    <div v-else class="published-image-placeholder">
-      Image not available
+    <div class="published-image-container">
+      <img
+        v-if="src"
+        :src="src"
+        :alt="alt"
+        class="published-image"
+      />
+      <div v-else class="published-image-placeholder">
+        Image not available
+      </div>
     </div>
   </div>
 </template>
@@ -41,18 +43,28 @@ const props = defineProps({
   align-items: center;
 }
 
+.published-image-container {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 10px;
+  background-color: white;
+  aspect-ratio: 16 / 9;
+}
+
 .published-image {
-  max-width: 100%;
-  height: auto;
-  border-radius: 8px;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .published-image-placeholder {
   width: 100%;
-  height: 200px;
+  height: 100%;
   background-color: #f5f5f5;
   border: 2px dashed #ddd;
-  border-radius: 8px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;

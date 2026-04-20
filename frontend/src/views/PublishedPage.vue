@@ -1,13 +1,10 @@
 <script setup>
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { ref, onMounted, watch, computed } from 'vue'
 import SiteRenderer from '@/components/SiteRenderer.vue'
-import ProductCardBlock from '@/components/blocks/ProductCardBlock.vue'
 
 const route = useRoute()
-const router = useRouter()
 const layout = ref([])
-const products = ref([])
 const hasProducts = ref(false)
 const projectName = ref('')
 const loading = ref(true)
@@ -27,33 +24,18 @@ async function loadPage() {
     loading.value = true
     error.value = null
 
-    if (isShopPage.value) {
-      // Load products for shop page
-      const res = await fetch(`/api/projects/${route.params.projectSlug}/products`)
-      if (!res.ok) {
-        throw new Error(`Failed to load products: ${res.status}`)
-      }
-      const data = await res.json()
-      products.value = data.products || []
-      hasProducts.value = true
-      projectName.value = data.project_name || ''
-      layout.value = [] // No layout for shop page
-    } else {
-      // Load regular page layout
-      const res = await fetch(
-        `/api/site/${route.params.projectSlug}/${route.params.pageName}`
-      )
+    const res = await fetch(
+      `/api/site/${route.params.projectSlug}/${route.params.pageName}`
+    )
 
-      if (!res.ok) {
-        throw new Error(`Failed to load page: ${res.status}`)
-      }
-
-      const data = await res.json()
-      layout.value = data.layout
-      hasProducts.value = data.has_products
-      projectName.value = data.project_name
-      products.value = []
+    if (!res.ok) {
+      throw new Error(`Failed to load page: ${res.status}`)
     }
+
+    const data = await res.json()
+    layout.value = data.layout
+    hasProducts.value = data.has_products
+    projectName.value = data.project_name
   } catch (err) {
     console.error('Error loading published page:', err)
     error.value = err.message
@@ -62,57 +44,35 @@ async function loadPage() {
   }
 }
 
-function goBack() {
-  router.push('/dashboard')
-}
-
 onMounted(loadPage)
 watch([() => route.params.projectSlug, () => route.params.pageName], loadPage)
 </script>
 
 <template>
   <div class="published-site">
-    <!-- Minimal header for navigation back to dashboard -->
-    <header class="site-header">
+    <header class="site-header" v-if="!isShopPage">
       <div class="header-content">
-        <button @click="goBack" class="back-button">
-          ← Back to Dashboard
-        </button>
+        <div class="site-badge">
+          <strong>{{ projectName || 'Published Site' }}</strong>
+        </div>
       </div>
     </header>
 
-    <!-- Loading state -->
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>
       <p>Loading page...</p>
     </div>
 
-    <!-- Error state -->
     <div v-else-if="error" class="error-state">
       <h2>Page Not Found</h2>
       <p>{{ error }}</p>
-      <button @click="goBack" class="back-button">Return to Dashboard</button>
     </div>
 
-    <!-- Main content -->
     <main v-else class="site-content">
-      <div v-if="isShopPage" class="shop-container">
-        <h1 class="shop-title">{{ projectName }} Shop</h1>
-        <div class="products-grid">
-          <ProductCardBlock
-            v-for="product in products"
-            :key="product.id"
-            :productId="product.id"
-            :name="product.name"
-            :description="product.description"
-            :price="product.sale_price"
-            :imageUrl="product.image_url"
-            :altText="product.alt_text"
-            :inStock="product.stock > 0"
-          />
-        </div>
+      <div class="site-title" v-if="isShopPage">
+        <h1>{{ projectName }} Shop</h1>
       </div>
-      <div v-else class="site-container">
+      <div class="site-container" :class="{ 'shop-layout': isShopPage }">
         <SiteRenderer
           v-for="comp in layout"
           :key="comp.id"
@@ -132,20 +92,18 @@ watch([() => route.params.projectSlug, () => route.params.pageName], loadPage)
 <style scoped>
 .published-site {
   min-height: 100vh;
-  background-color: #ffffff;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.16), transparent 28%),
+    radial-gradient(circle at top right, rgba(16, 185, 129, 0.12), transparent 24%),
+    linear-gradient(180deg, #f4f8ff 0%, #eef3f7 48%, #f8fafc 100%);
+  font-family: Georgia, 'Times New Roman', serif;
 }
 
 .site-header {
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid #e0e0e0;
   z-index: 1000;
-  padding: 8px 0;
+  padding: 20px 0 0;
 }
 
 .header-content {
@@ -154,24 +112,32 @@ watch([() => route.params.projectSlug, () => route.params.pageName], loadPage)
   padding: 0 20px;
 }
 
-.back-button {
-  background: #f8f9fa;
-  border: 1px solid #ddd;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #333;
-  transition: background-color 0.2s ease;
+.site-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 18px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+  color: #0f172a;
 }
 
-.back-button:hover {
-  background: #e9ecef;
+.badge-label {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #2563eb;
 }
 
 .site-content {
-  padding-top: 60px; /* Account for fixed header */
-  min-height: calc(100vh - 60px);
+  padding: 26px 0 40px;
+  min-height: calc(100vh - 80px);
   display: flex;
   flex-direction: column;
 }
@@ -179,7 +145,7 @@ watch([() => route.params.projectSlug, () => route.params.pageName], loadPage)
 .site-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 28px;
   width: 100%;
   box-sizing: border-box;
   flex: 1;
@@ -187,7 +153,14 @@ watch([() => route.params.projectSlug, () => route.params.pageName], loadPage)
   grid-template-columns: repeat(12, 1fr);
   grid-auto-rows: 80px;
   min-height: 800px;
-  background-color: #ffffff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 30px;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.08);
+}
+
+.shop-layout {
+  align-content: start;
 }
 
 .loading-state {
@@ -197,6 +170,7 @@ watch([() => route.params.projectSlug, () => route.params.pageName], loadPage)
   justify-content: center;
   min-height: 50vh;
   gap: 20px;
+  color: #334155;
 }
 
 .spinner {
@@ -220,7 +194,7 @@ watch([() => route.params.projectSlug, () => route.params.pageName], loadPage)
   justify-content: center;
   min-height: 50vh;
   text-align: center;
-  padding: 20px;
+  padding: 20px 24px;
 }
 
 .error-state h2 {
@@ -233,53 +207,70 @@ watch([() => route.params.projectSlug, () => route.params.pageName], loadPage)
   margin-bottom: 20px;
 }
 
-.shop-container {
+.site-title {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
-}
-
-.shop-title {
+  padding: 18px 20px 16px;
   text-align: center;
-  margin-bottom: 30px;
-  font-size: 2rem;
-  color: #333;
 }
 
-.products-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
+.eyebrow {
+  margin: 0 0 8px;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #2563eb;
 }
 
-/* Responsive design */
+.site-title h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 5vw, 3.8rem);
+  line-height: 0.95;
+  color: #0f172a;
+}
+
+.subtitle {
+  max-width: 620px;
+  margin: 14px auto 0;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #475569;
+}
+
 @media (max-width: 768px) {
+  .header-pill {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .site-content {
-    padding-top: 50px;
+    padding-top: 18px;
   }
 
   .site-container {
     padding: 15px;
+    border-radius: 22px;
   }
 
   .site-header {
-    padding: 6px 0;
+    padding-top: 14px;
   }
 
   .header-content {
     padding: 0 15px;
-  }
-
-  .back-button {
-    padding: 5px 10px;
-    font-size: 13px;
   }
 }
 
 @media (max-width: 480px) {
   .site-container {
     padding: 10px;
+  }
+
+  .site-title h1 {
+    font-size: 2rem;
   }
 }
 </style>

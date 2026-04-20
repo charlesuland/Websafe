@@ -183,8 +183,8 @@ onUnmounted(() => {
       </div>
 
       <div class="right">
-        <button class="secondary" @click="saveDraft">Save</button>
-        <button class="primary" @click="publishLayout" :disabled="savingState === 'saving'">Publish</button>
+        <button class="secondary" @click="saveDraft">Save Draft</button>
+        <button class="primary" @click="publishLayout" :disabled="savingState === 'saving'">Publish Site</button>
       </div>
     </header>
 

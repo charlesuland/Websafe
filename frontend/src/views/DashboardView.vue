@@ -96,6 +96,7 @@ async function viewPublishedSite(project_id) {
           <img
             v-if="project.preview_image"
             :src="project.preview_image"
+            :alt="project.name + ' preview image'"
             class="thumbnail"
           />
           <p class="project-text">Last Updated:</p>
@@ -118,6 +119,10 @@ async function viewPublishedSite(project_id) {
 </template>
 
 <style scoped>
+h2 {
+  color: rgb(90, 140, 255);
+}
+
 .dashboard-content {
   padding: 30px;
 }
@@ -128,6 +133,8 @@ async function viewPublishedSite(project_id) {
 
 .primary {
   background: rgb(90, 140, 255);
+  margin-top: 10px;
+  margin-bottom: 10px;
   color: white;
   border: none;
   padding: 10px 16px;

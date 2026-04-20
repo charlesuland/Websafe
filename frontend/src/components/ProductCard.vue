@@ -1,17 +1,7 @@
 <script setup>
 const props = defineProps({
-  product: {
-    type: Object,
-    required: true
-  },
-  imageUrl: {
-    type: String,
-    default: null
-  },
-  project: {
-    type: Object,
-    required: true
-  }
+  product: Object,
+  project: Object
 })
 
 const emit = defineEmits(['edit', 'delete', 'toggle-active'])
@@ -21,7 +11,7 @@ function onEdit() {
 }
 
 function onDelete() {
-  emit('delete', props.product.id, props.project)
+  emit('delete', props.product, props.project)
 }
 
 function onToggleActive() {
@@ -31,20 +21,23 @@ function onToggleActive() {
 
 <template>
   <div class="card">
-    <div v-if="imageUrl" class="product-image-container">
-      <img :src="imageUrl" :alt="product.name" class="product-image" />
+    <div v-if="product?.image_url" class="product-image-container">
+      <img :src="product.image_url" :alt="product.alt_text" class="product-image" />
     </div>
     <div v-else class="product-image-placeholder">No Image</div>
 
-    <h3>{{ product.name }}</h3>
-    <p>{{ product.description }}</p>
-    <strong>${{ (product.sale_price / 100).toFixed(2) }}</strong>
+    <h3>{{ product?.name }}</h3>
+    <p>{{ product?.description }}</p>
+
+    <strong>
+      ${{ (product?.sale_price / 100).toFixed(2) }}
+    </strong>
 
     <div class="actions">
       <button @click="onEdit">Edit</button>
       <button @click="onDelete">Delete</button>
       <button @click="onToggleActive">
-        {{ product.is_active ? 'Deactivate' : 'Activate' }}
+        {{ product?.is_active ? 'Deactivate' : 'Activate' }}
       </button>
     </div>
   </div>

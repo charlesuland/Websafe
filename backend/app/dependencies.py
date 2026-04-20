@@ -47,7 +47,6 @@ async def upload_image_to_s3(
     """
     obj = s3_client.Object("websafe", file_key)
     obj.put(Body=file_bytes, ContentType=content_type)
-    
     return f"{s3_base_url}{file_key}"
 
 def get_db():

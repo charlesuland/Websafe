@@ -13,8 +13,8 @@
         <div class="footer-column">
           <h3>Product</h3>
           <ul>
-            <li><a href="#">Features</a></li>
-            <li><a href="#">Pricing</a></li>
+            <li><a href="/#features">Features</a></li>
+            <li><a href="/#pricing">Pricing</a></li>
             <li><router-link to="/login">Login</router-link></li>
           </ul>
         </div>

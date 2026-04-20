@@ -52,15 +52,16 @@ function goTo(page) {
     }"
   >
     <div class="nav-container">
-      <span
+      <button
         v-for="link in effectiveLinks"
         :key="link"
         @click="goTo(link)"
         class="nav-link"
+        type="button"
         :style="{ fontSize: style.fontSize + 'px' }"
       >
         {{ link }}
-      </span>
+      </button>
     </div>
   </nav>
 </template>
@@ -89,8 +90,10 @@ function goTo(page) {
   padding: 8px 16px;
   border-radius: 4px;
   transition: background-color 0.2s ease;
-  text-decoration: none;
   display: inline-block;
+  background: transparent;
+  border: none;
+  color: inherit;
 }
 
 .nav-link:hover {

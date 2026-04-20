@@ -5,48 +5,48 @@
       <p>{{ subtitle }}</p>
 
       <!-- Show error messages to the user instead of a bare alert() -->
-      <div v-if="errorMessage" class="error-banner">{{ errorMessage }}</div>
+      <div v-if="errorMessage" id="auth-error" class="error-banner" role="alert" aria-live="polite">{{ errorMessage }}</div>
 
-      <form @submit.prevent="handleSubmit">
+      <form @submit.prevent="handleSubmit" :aria-describedby="errorMessage ? 'auth-error' : undefined">
 
         <!-- Registration-only fields -->
         <template v-if="isRegister">
           <div class="input-row">
             <div class="input-group">
-              <label>First Name</label>
-              <input v-model="firstName" type="text" placeholder="First name" required />
+              <label for="first-name">First Name</label>
+              <input id="first-name" v-model="firstName" type="text" placeholder="First name" autocomplete="given-name" required />
             </div>
             <div class="input-group">
-              <label>Last Name</label>
-              <input v-model="lastName" type="text" placeholder="Last name" required />
+              <label for="last-name">Last Name</label>
+              <input id="last-name" v-model="lastName" type="text" placeholder="Last name" autocomplete="family-name" required />
             </div>
           </div>
 
           <div class="input-group">
-            <label>Username</label>
-            <input v-model="username" type="text" placeholder="Choose a username" required />
+            <label for="username">Username</label>
+            <input id="username" v-model="username" type="text" placeholder="Choose a username" autocomplete="username" required />
           </div>
 
           <div class="input-group">
-            <label>Phone</label>
-            <input v-model="phone" type="tel" placeholder="Phone number" required />
+            <label for="phone">Phone</label>
+            <input id="phone" v-model="phone" type="tel" placeholder="Phone number" autocomplete="tel" required />
           </div>
         </template>
 
         <div class="input-group">
-          <label>Email</label>
-          <input v-model="email" type="email" placeholder="Enter your email" required />
+          <label for="email">Email</label>
+          <input id="email" v-model="email" type="email" placeholder="Enter your email" autocomplete="email" required />
         </div>
 
         <div class="input-group">
-          <label>Password</label>
-          <input v-model="password" type="password" placeholder="Enter your password" required />
+          <label for="password">Password</label>
+          <input id="password" v-model="password" type="password" :autocomplete="isRegister ? 'new-password' : 'current-password'" placeholder="Enter your password" required />
         </div>
 
         <!-- Confirm password only shown on register -->
         <div v-if="isRegister" class="input-group">
-          <label>Confirm Password</label>
-          <input v-model="confirmPassword" type="password" placeholder="Confirm password" required />
+          <label for="confirm-password">Confirm Password</label>
+          <input id="confirm-password" v-model="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirm password" required />
         </div>
 
         <button class="login-btn" :disabled="loading">

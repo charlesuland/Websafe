@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
 from app.dependencies import get_db, get_current_user, get_s3_client, s3_base_url, upload_image_to_s3
 from app.models import (
     Project,
@@ -16,8 +17,11 @@ from datetime import datetime
 import uuid as UUID
 import base64
 import mimetypes
+import copy
 from pathlib import Path
 from sqlmodel import select
+from sqlalchemy import update
+from urllib.parse import quote
 
 projects_router = APIRouter(prefix="/projects", tags=["projects"])
 public_router = APIRouter(prefix="/site", tags=["public"])
@@ -33,6 +37,45 @@ class DraftSaveRequest(BaseModel):
 
 class ProjectIn(BaseModel):
     name: str
+
+
+def build_media_proxy_url(file_key: str) -> str:
+    return f"/api/site/_media?file_key={quote(file_key, safe='')}"
+
+
+def normalize_media_url(url: Any) -> Any:
+    if not isinstance(url, str) or not url:
+        return url
+
+    if url.startswith("/api/site/_media?file_key="):
+        return url
+
+    if url.startswith("/api/projects/media?file_key="):
+        file_key = url.split("file_key=", 1)[1]
+        return f"/api/site/_media?file_key={file_key}"
+
+    if url.startswith(s3_base_url):
+        file_key = url[len(s3_base_url):]
+        return build_media_proxy_url(file_key)
+
+    return url
+
+
+def normalize_layout_media(layout: list[dict]) -> list[dict]:
+    normalized = copy.deepcopy(layout)
+
+    for component in normalized:
+        props = component.get("props")
+        if not isinstance(props, dict):
+            continue
+
+        if "src" in props:
+            props["src"] = normalize_media_url(props["src"])
+
+        if "imageUrl" in props:
+            props["imageUrl"] = normalize_media_url(props["imageUrl"])
+
+    return normalized
 
 @projects_router.get("/")
 async def get_projects(db=Depends(get_db), user=Depends(get_current_user)):
@@ -175,7 +218,7 @@ async def get_draft_pages(project_id: int, db=Depends(get_db), user=Depends(get_
     return [
         {
             "name": p.name,
-            "layout": p.layout
+            "layout": normalize_layout_media(p.layout)
         }
         for p in pages
     ]
@@ -204,9 +247,21 @@ async def publish_project(project_id: int, db=Depends(get_db), user=Depends(get_
         page = ProjectPage(
             project_id=project_id,
             name=d.name,
-            layout=d.layout
+            layout=normalize_layout_media(d.layout)
         )
         db.add(page)
+
+    db.execute(
+        update(ProjectProduct)
+        .where(ProjectProduct.project_id == project_id)
+        .values(is_published=False)
+    )
+    db.execute(
+        update(ProjectProduct)
+        .where(ProjectProduct.project_id == project_id)
+        .where(ProjectProduct.is_active == True)
+        .values(is_published=True)
+    )
 
     project.is_live = True
     project.last_published = datetime.utcnow()
@@ -292,6 +347,24 @@ async def save_draft_pages(
     return {"status": "saved"}
 
 
+@public_router.get("/_media")
+async def proxy_project_media(file_key: str, s3=Depends(get_s3_client)):
+    try:
+        obj = s3.Object("websafe", file_key)
+        response = obj.get()
+    except Exception:
+        raise HTTPException(status_code=404, detail="Media not found")
+
+    content_type = response.get("ContentType") or "application/octet-stream"
+    body = response["Body"]
+
+    return StreamingResponse(
+        body.iter_chunks(),
+        media_type=content_type,
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
+
+
 @projects_router.post("/{project_id}/upload-image")
 async def upload_project_image(
     project_id: int,
@@ -314,7 +387,7 @@ async def upload_project_image(
     file_bytes = await file.read()
     file_key = f"projects/{project_id}/editor/{UUID.uuid4()}{ext}"
 
-    upload_url = await upload_image_to_s3(file_bytes, file_key, file.content_type or "application/octet-stream", s3)
+    await upload_image_to_s3(file_bytes, file_key, file.content_type or "application/octet-stream", s3)
 
     metadata = MediaObjectMetadata(
         project_id=project_id,
@@ -326,7 +399,7 @@ async def upload_project_image(
     db.add(metadata)
     db.commit()
 
-    return {"url": upload_url}
+    return {"url": build_media_proxy_url(file_key)}
 
 
 @projects_router.post("/{project_id}/products")
@@ -367,12 +440,13 @@ async def get_published_page(project_slug: str, page_name: str, db=Depends(get_d
     has_products = db.execute(
         select(ProjectProduct).where(
             ProjectProduct.project_id == project_id,
-            ProjectProduct.is_published == True
+            ProjectProduct.is_published == True,
+            ProjectProduct.is_active == True
         ).limit(1)
     ).scalar_one_or_none() is not None
 
     return {
-        "layout": page.layout,
+        "layout": normalize_layout_media(page.layout),
         "has_products": has_products,
         "project_name": project.name
     }
@@ -392,7 +466,8 @@ async def get_project_products(project_slug: str, db=Depends(get_db)):
     products = db.execute(
         select(ProjectProduct).where(
             ProjectProduct.project_id == project_id,
-            ProjectProduct.is_published == True
+            ProjectProduct.is_published == True,
+            ProjectProduct.is_active == True
         )
     ).scalars().all()
 
@@ -403,7 +478,7 @@ async def get_project_products(project_slug: str, db=Depends(get_db)):
         if product.product_image:
             media = db.get(MediaObjectMetadata, product.product_image)
             if media:
-                image_url = f"{s3_base_url()}/{media.file_key}"
+                image_url = build_media_proxy_url(media.file_key)
 
         product_data.append({
             "id": product.id,
