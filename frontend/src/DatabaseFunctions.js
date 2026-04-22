@@ -161,7 +161,7 @@ export {
     apiDeleteProduct,
 
     // Image APIs
-    apiUploadImage,
+    apiUploadProductImage,
 
     // Security Activity APIs
     apiFetchSecurityActivity
