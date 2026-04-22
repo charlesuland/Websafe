@@ -1,9 +1,9 @@
 <template>
-  <section class="how-it-works">
+  <section id="how-it-works" class="how-it-works" aria-labelledby="how-it-works-heading">
 
     <div class="container">
 
-      <h2>How WebSafe Works</h2>
+      <h2 id="how-it-works-heading">How WebSafe Works</h2>
 
       <div class="steps">
 

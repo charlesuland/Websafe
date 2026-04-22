@@ -1,8 +1,8 @@
 <template>
-    <section class="features">
+    <section id="features" class="features" aria-labelledby="features-heading">
         <div class="container">
 
-            <h2>Why Use WebSafe?</h2>
+            <h2 id="features-heading">Why Use WebSafe?</h2>
 
             <div class="feature-grid">
 

@@ -1,9 +1,9 @@
 <template>
-  <section class="pricing">
+  <section id="pricing" class="pricing" aria-labelledby="pricing-heading">
 
     <div class="container">
 
-      <h2>Simple Pricing</h2>
+      <h2 id="pricing-heading">Simple Pricing</h2>
       <p class="subtitle">Choose the plan that fits your needs</p>
 
       <div class="pricing-grid">
@@ -12,14 +12,14 @@
           <h3>Starter</h3>
           <p class="price">$0</p>
           <p class="description">Perfect for learning and small projects.</p>
-          <button class="pricing-btn">Get Started</button>
+          <router-link class="pricing-btn" to="/register">Get Started</router-link>
         </div>
 
         <div class="pricing-card">
           <h3>Pro</h3>
           <p class="price">$12<span>/mo</span></p>
           <p class="description">Best for creators building real websites.</p>
-          <button class="pricing-btn">Start Pro</button>
+          <router-link class="pricing-btn" to="/register">Start Pro</router-link>
         </div>
 
 
@@ -29,6 +29,9 @@
 
   </section>
 </template>
+
+<script setup>
+</script>
 
 <style scoped>
 
@@ -98,13 +101,13 @@
 /* Button */
 
 .pricing-btn{
+  display: inline-block;
   padding:12px 24px;
-  border:none;
   border-radius:8px;
   background:#2f7df6;
   color:white;
-  cursor:pointer;
   font-size:16px;
+  text-decoration: none;
 }
 
 .pricing-btn:hover{

@@ -18,16 +18,17 @@
 </script>
 
 <template>
-  <div class="palette">
-    <div
+  <div class="palette" aria-label="Component palette">
+    <button
       v-for="item in paletteItems"
       :key="item.type"
       class="palette-item"
+      type="button"
       draggable="true"
       @dragstart="startDrag(item.type, $event)"
     >
       {{ item.label }}
-    </div>
+    </button>
 
   </div>
 </template>
@@ -52,12 +53,12 @@
   .palette-item {
     background: #2f7df6;
     color: white;
+    border: 1px solid darkgray;
     border-radius: 8px;
     padding: 12px;
     cursor: grab;
     text-align: center;
     font-weight: bold;
-    border: 1px solid darkgray;
     box-shadow: 10px, 10px, 5px, black;
     transition: all .2s ease;
   }

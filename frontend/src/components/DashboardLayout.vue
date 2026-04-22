@@ -9,8 +9,6 @@ const activeTab = ref('projects')
 function navigateTo(tab) {
   activeTab.value = tab
 
-  router.push(`/${tab}`)
-
   if (tab === 'projects') {
     router.push('/dashboard')
   } else if (tab === 'products') {
@@ -58,8 +56,8 @@ function logout() {
     <div class="body">
       <aside class="sidebar">
         <button
-          :class="{ active: activeTab === 'dashboard' }"
-          @click="navigateTo('dashboard')"
+          :class="{ active: activeTab === 'projects' }"
+          @click="navigateTo('projects')"
         >
           Projects
         </button>

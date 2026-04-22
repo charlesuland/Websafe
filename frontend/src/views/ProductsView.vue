@@ -3,11 +3,11 @@ import { ref, onMounted } from 'vue'
 import { getAuthHeaders } from '@/auth.js'
 import { 
   apiFetchAllProducts,
-  apiFetchAllPublishedProducts,
   apiCreateProduct,
   apiFetchProjects,
   apiUpdateProduct,
-  apiDeleteProduct
+  apiDeleteProduct,
+  apiUploadProductImage
 } from '@/DatabaseFunctions.js'
 import router from '@/router'
 import ProductCard from '@/components/ProductCard.vue'
@@ -17,53 +17,28 @@ const loading = ref(true)
 const selectedFile = ref(null)
 const editingProduct = ref(null)
 const showEditMenu = ref(false)
-const currentImagePreview = ref(null) // For displaying current or selected image
-const token = localStorage.getItem('token')
-
-const productImages = ref({}) // Cache for product image URLs
+const currentImagePreview = ref(null)
 
 onMounted(async () => {
-  const userProjects = await apiFetchProjects()
-  const projectsData = []
-
-  for (const project of userProjects) {
-    const products = await apiFetchAllProducts(project.id)
-    projectsData.push({ 
-      project,
-      products
-    })
+  try {
+    const userProjects = await apiFetchProjects()
+    const projectsData = await Promise.all(
+      userProjects.map(async (project) => {
+        const products = await apiFetchAllProducts(project.id)
+        return { project, products }
+      })
+    )
+    projectsWithProducts.value = projectsData
+  } catch (error) {
+    console.error("Error loading products:", error)
+    alert("Failed to load products.")
+    router.push('/dashboard')
+  } finally {
+    loading.value = false
   }
-
-  projectsWithProducts.value = projectsData
-  
-  // Fetch images for all products
-  for (const projectData of projectsData) {
-    for (const product of projectData.products) {
-      await fetchProductImage(product.id)
-    }
-  }
-  
-  loading.value = false;
 })
 
-
-async function fetchProductImage(productId) {
-  try {
-    const res = await fetch(`/api/products/get-product-image?product_id=${productId}`, {
-      headers: getAuthHeaders()
-    })
-    if (res.ok) {
-      const data = await res.json()
-      productImages.value[productId] = data.image_url
-    }
-  } catch (error) {
-    console.error(`Failed to fetch image for product ${productId}:`, error)
-  }
-}
-
-
-function getCurrentProductEdits() {
-  const source = editingProduct.value || {}
+function getPayload(source) {
   return {
     project_id: source.project_id,
     name: source.name,
@@ -75,23 +50,9 @@ function getCurrentProductEdits() {
   }
 }
 
-function getCurrentProductUpdatePayload() {
-  const source = editingProduct.value || {}
-  return {
-    name: source.name,
-    description: source.description,
-    sale_price: parseInt(source.sale_price) || 0,
-    shipping_price: parseInt(source.shipping_price) || 0,
-    alt_text: source.alt_text,
-    stock: parseInt(source.stock) || 0
-  }
-}
-
-
 function openCreate(project) {
   editingProduct.value = {
     project_id: project.id,
-    id: null,
     name: '',
     description: '',
     sale_price: 0,
@@ -99,88 +60,78 @@ function openCreate(project) {
     alt_text: '',
     stock: 0
   }
+  selectedFile.value = null
   currentImagePreview.value = null
   showEditMenu.value = true
 }
 
-
 function openEdit(product, project) {
-  editingProduct.value = { 
-    project_id: project.id || project.project_id, 
-    ...product
-  }
-  // Show existing S3 image if available
-  currentImagePreview.value = productImages.value[product.id] || null
+  editingProduct.value = { ...product, project_id: project.id }
+  selectedFile.value = null
+  currentImagePreview.value = product.image_url || null
   showEditMenu.value = true
 }
 
-
 async function saveProduct() {
-  const productData = getCurrentProductEdits()
-  const isNewProduct = !editingProduct.value?.id
-  let product = null
-
   try {
-    if (isNewProduct) {
-      product = await apiCreateProduct(productData)
-      const projectSection = projectsWithProducts.value.find(
-        p => p.project.id === productData.project_id
+    let product
+
+    const payload = getPayload(editingProduct.value)
+
+    // CREATE
+    if (!editingProduct.value.id) {
+      product = await apiCreateProduct(payload)
+
+      const section = projectsWithProducts.value.find(
+        p => p.project.id === product.project_id
       )
-      if (projectSection) {
-        projectSection.products.push(product)
-      }
-    } else {
-      product = await apiUpdateProduct(editingProduct.value.id, getCurrentProductUpdatePayload())
-      const projectSection = projectsWithProducts.value.find(
-        p => p.project.id === editingProduct.value.project_id
-      )
-      if (projectSection) {
-        const idx = projectSection.products.findIndex(
-          p => p.id === editingProduct.value.id
-        )
-        if (idx !== -1) {
-          projectSection.products[idx] = product
-        }
-      }
+      section?.products.push(product)
     }
 
+    // UPDATE
+    else {
+      product = await apiUpdateProduct(
+        editingProduct.value.id,
+        payload
+      )
+
+      const section = projectsWithProducts.value.find(
+        p => p.project.id === product.project_id
+      )
+
+      const idx = section?.products.findIndex(p => p.id === product.id)
+      if (idx !== -1) section.products[idx] = product
+    }
+
+    // IMAGE UPLOAD
     if (selectedFile.value && product?.id) {
-      await uploadProductImage(product.id)
+      const updated = await apiUploadProductImage(
+        product.id,
+        selectedFile.value,
+        editingProduct.value.alt_text || ''
+      )
+
+      const section = projectsWithProducts.value.find(
+        p => p.project.id === product.project_id
+      )
+
+      const idx = section?.products.findIndex(p => p.id === product.id)
+      if (idx !== -1) section.products[idx] = updated
     }
 
     showEditMenu.value = false
     selectedFile.value = null
     currentImagePreview.value = null
-  } catch (error) {
-    console.error("Save product error:", error.message)
-    alert("Failed to save product: " + error.message)
+
+  } catch (err) {
+    console.error("Save failed:", err)
+    alert("Save failed")
   }
 }
 
-
-async function uploadProductImage(productId) {
-  const formData = new FormData()
-  formData.append("file", selectedFile.value)
-
-  const res = await fetch(
-    `/api/products/add-product-picture?product_id=${productId}&alt_text=${encodeURIComponent(editingProduct.value.alt_text || '')}`,
-    {
-      method: "POST",
-      headers: { ...getAuthHeaders() },
-      body: formData
-    }
-  )
-
-  if (!res.ok) {
-    throw new Error(await res.text())
-  }
-
-  await fetchProductImage(productId)
-}
-
-
-async function toggleActive(product, project) {
+async function toggleActive(product) {
   const newStatus = !product.is_active
+
   await fetch(`/api/products/${product.id}/toggle-active`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
@@ -190,37 +141,34 @@ async function toggleActive(product, project) {
   product.is_active = newStatus
 }
 
-
 async function deleteProduct(productId, project) {
-  if (!confirm("Delete this product?"))
-    return
+  if (!confirm("Delete this product?")) return
 
-  const res = await apiDeleteProduct(productId)
+  await apiDeleteProduct(productId)
 
-  const projectSection = projectsWithProducts.value.find(p => p.project.id === project.id)
-  projectSection.products = projectSection.products.filter(p => p.id !== productId)
+  const section = projectsWithProducts.value.find(p => p.project.id === project.id)
+  section.products = section.products.filter(p => p.id !== productId)
 }
 
+function setPreview(file) {
+  if (currentImagePreview.value) URL.revokeObjectURL(currentImagePreview.value)
+  currentImagePreview.value = URL.createObjectURL(file)
+}
 
 function handleDrop(e) {
   const file = e.dataTransfer.files[0]
-  if (file) {
-    selectedFile.value = file
-    currentImagePreview.value = URL.createObjectURL(file)
-  }
+  if (!file?.type.startsWith('image')) return alert("Image only")
+  selectedFile.value = file
+  setPreview(file)
 }
-
 
 function handleFileSelect(e) {
   const file = e.target.files[0]
-  if (file) {
-    selectedFile.value = file
-    currentImagePreview.value = URL.createObjectURL(file)
-  }
+  if (!file?.type.startsWith('image')) return alert("Image only")
+  selectedFile.value = file
+  setPreview(file)
 }
 </script>
-
-
 
 <template>
   <div class="products-content">
@@ -231,27 +179,26 @@ function handleFileSelect(e) {
     <div v-if="loading">Loading...</div>
 
 
-    <div v-for="p in projectsWithProducts" :key="p.project.id" class="project-section">
+    <div v-for="p in projectsWithProducts" :key="p.project.id">
       <h2>{{ p.project.name }}</h2>
-      <button @click="openCreate(p.project)">+ New Product</button>
+      <button class="primary" @click="openCreate(p.project)">+ New Product</button>
 
       <div class="grid">
         <ProductCard
           v-for="product in p.products"
           :key="product.id"
           :product="product"
-          :image-url="productImages[product.id]"
           :project="p.project"
-          @edit="openEdit"
-          @delete="deleteProduct"
-          @toggle-active="toggleActive"
+          @edit="() => openEdit(product, p.project)"
+          @delete="() => deleteProduct(product.id, p.project)"
+          @toggle-active="() => toggleActive(product)"
         />
       </div>
     </div>
 
     <div v-if="showEditMenu" class="edit-menu">
       <div class="edit-menu-content">
-        <h3>{{ editingProduct.project_id ? 'Edit Product' : 'New Product' }}</h3>
+        <h3>{{ editingProduct.id ? 'Edit Product' : 'New Product' }}</h3>
 
         <h4 class="edit-menu-field-header">Name</h4>
         <input v-model="editingProduct.name" placeholder="Name" />
@@ -290,7 +237,7 @@ function handleFileSelect(e) {
           <img 
             v-if="currentImagePreview" 
             :src="currentImagePreview" 
-            alt="Product Preview" 
+            :alt="editingProduct.alt_text"
             class="preview-image"
           />
           <input type="file" @change="handleFileSelect" hidden ref="fileInput" />
@@ -309,13 +256,17 @@ function handleFileSelect(e) {
           <button @click="saveProduct">Save</button>
           <button @click="showEditMenu = false">Cancel</button>
         </div>
+
       </div>
     </div>
-
   </div>
 </template>
 
 <style scoped>
+h2 {
+  color: rgb(90, 140, 255);
+}
+
 .products-content {
   padding: 30px;
 }
@@ -343,6 +294,8 @@ function handleFileSelect(e) {
   font-weight: 500;
   transition: background 0.2s;
   min-width: 140px;
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 
 .primary:hover {

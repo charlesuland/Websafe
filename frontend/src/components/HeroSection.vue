@@ -1,11 +1,11 @@
 <template>
-  <section class="hero">
+  <section class="hero" aria-labelledby="hero-heading">
 
     <div class="hero-container">
 
       <div class="hero-text">
 
-        <h1>Your Website,<br> Secured by Design</h1>
+        <h1 id="hero-heading">Your Website,<br> Secured by Design</h1>
 
         <p>
           Build modern websites with security-first infrastructure,
@@ -61,7 +61,7 @@
 
 .hero-text p{
   font-size:18px;
-  color:#555;
+  color:#d4def0;
   margin-bottom:30px;
 }
 
@@ -88,6 +88,10 @@
   background:#1d4ed8;
   transform:translateY(-2px);
   box-shadow:0 12px 24px rgba(0,0,0,0.2);
+}
+
+.cta-button:focus-visible {
+  background:#1d4ed8;
 }
 
 

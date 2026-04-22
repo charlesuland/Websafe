@@ -33,18 +33,18 @@ const props = defineProps({
 
 <template>
   <div class="product-card">
-    <div v-if="props.imageUrl" class="product-image-container">
-      <img :src="props.imageUrl" :alt="props.altText" class="product-image" />
+    <div v-if="imageUrl" class="product-image-container">
+      <img :src="imageUrl" :alt="altText" class="product-image" />
     </div>
     <div v-else class="product-image-placeholder">No Image</div>
     
     <div class="product-info">
-      <h3>{{ props.name }}</h3>
-      <p class="description">{{ props.description }}</p>
+      <h3>{{ name }}</h3>
+      <p class="description">{{ description }}</p>
       <div class="product-footer">
-        <strong class="price">${{ (props.price / 100).toFixed(2) }}</strong>
+        <strong class="price">${{ (price / 100).toFixed(2) }}</strong>
         <div class="stock-status">
-          <span v-if="props.inStock" class="in-stock">In Stock</span>
+          <span v-if="inStock" class="in-stock">In Stock</span>
           <span v-else class="out-of-stock">Out of Stock</span>
         </div>
       </div>

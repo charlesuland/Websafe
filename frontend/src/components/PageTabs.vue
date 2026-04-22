@@ -47,20 +47,23 @@ function renamePage(page) {
 <template>
   <div class="tabs-container">
     <h2 class="tabs-header">Pages</h2>
-    <div class="tabs">
-      <div
+    <div class="tabs" role="tablist" aria-label="Project pages">
+      <button
         v-for="page in store.pages"
         @dblclick="renamePage(page)"
         :key="page.name"
         :class="['tab', page.name === store.currentPage ? 'active' : '']"
         @click="selectPage(page.name)"
+        role="tab"
+        type="button"
+        :aria-selected="page.name === store.currentPage"
       >
         {{ page.name }}
-      </div>
+      </button>
 
-      <div class="tab add" @click="addPage">
+      <button class="tab add" type="button" @click="addPage" aria-label="Add page">
         +
-      </div>
+      </button>
     </div>
   </div>
 </template>
@@ -89,6 +92,7 @@ function renamePage(page) {
 
 .tab {
   padding: 8px 14px;
+  border: none;
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;

@@ -1,8 +1,27 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: #090d12;
   color: #e2eaf4;
   font-family: sans-serif;
   min-height: 100vh;
+}
+
+a,
+button,
+input,
+textarea,
+select,
+[role="button"],
+[tabindex]:not([tabindex="-1"]) {
+  transition: box-shadow 0.2s ease, outline-color 0.2s ease;
+}
+
+:focus-visible {
+  outline: 3px solid #f59e0b;
+  outline-offset: 3px;
 }
