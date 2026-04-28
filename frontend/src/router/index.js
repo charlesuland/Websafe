@@ -13,6 +13,10 @@ import AboutUsView from '@/views/AboutUsView.vue'
 
 import SettingsView from '@/views/SettingsView.vue'
 
+import CheckoutView from '@/views/CheckoutView.vue'
+
+
+
 const routes = [
   {
     path: '/',
@@ -61,9 +65,12 @@ const routes = [
   {
     path: '/site/:projectSlug/:pageName',
     component: PublishedPage
+  },
+  {
+    path: '/checkout/:routerId',
+    component: CheckoutView
   }
 ]
-
 const router = createRouter({
   history: createWebHistory(),
   routes
