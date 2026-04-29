@@ -191,6 +191,10 @@ function getGridPosition(event, canvas, component = null) {
   return { col, row }
 }
 
+function isLocked(component) {
+  return component.type === 'product'
+}
+
 </script>
 
 <template>
@@ -213,12 +217,14 @@ function getGridPosition(event, canvas, component = null) {
         v-for="component in components"
         :key="component.id"
         :class="{ selected: store.selectedComponent?.id === component.id }"
-        draggable="true"
 
-        @dragstart="startDrag($event, component)"
-        @drag="dragMove($event, component)"
-        @dragend="dragEnd($event, component)"
-        @click="store.selectComponent(component)"
+        :draggable="!isLocked(component)"
+
+        @dragstart="!isLocked(component) && startDrag($event, component)"
+        @drag="!isLocked(component) && dragMove($event, component)"
+        @dragend="!isLocked(component) && dragEnd($event, component)"
+        
+        @click="!isLocked(component) && store.selectComponent(component)"
         
         :style="{
           gridColumn: (component.col) + ' / span ' + component.colSpan,
@@ -226,7 +232,12 @@ function getGridPosition(event, canvas, component = null) {
         }"
       >
         <ComponentRenderer :componentData="component" :projectId="projectId" />
-        <div class="resize-handle" @mousedown="startResize($event, component)" draggable="false"></div>
+        <div 
+          v-if="!isLocked(component)"
+          class="resize-handle"
+          @mousedown="startResize($event, component)"
+          draggable="false">
+        </div>
       </div>
     </VueDraggable>
   </div>

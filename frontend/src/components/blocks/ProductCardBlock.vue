@@ -117,11 +117,6 @@ function goToCheckout() {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.product-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.08);
-}
-
 .product-image-container {
   width: 100%;
   aspect-ratio: 1 / 1; /* keeps images perfectly square */
