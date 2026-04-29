@@ -1,6 +1,6 @@
 <template>
   <Navbar /> 
-  <SubscriptionCard />
+
   <HeroSection /> 
   <FeatureSection />
   <HowItWorksSection />
@@ -16,7 +16,7 @@ import FeatureSection from "@/components/FeatureSection.vue";
 import HowItWorksSection from "@/components/HowItWorksSection.vue";
 import PricingSection from "@/components/PricingSection.vue";
 import Footer from "../components/Footer.vue"
-import SubscriptionCard from "@/components/SubscriptionCard.vue";
+
 
 
 
