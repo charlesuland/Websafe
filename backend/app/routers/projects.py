@@ -39,10 +39,8 @@ class DraftSaveRequest(BaseModel):
 class ProjectIn(BaseModel):
     name: str
 
-
 def build_media_proxy_url(file_key: str) -> str:
     return f"/api/site/_media?file_key={quote(file_key, safe='')}"
-
 
 def normalize_media_url(url: Any) -> Any:
     if not isinstance(url, str) or not url:
@@ -267,17 +265,6 @@ async def publish_project(project_id: int, request: Request, db=Depends(get_db),
         )
         db.add(page)
 
-    db.execute(
-        update(ProjectProduct)
-        .where(ProjectProduct.project_id == project_id)
-        .values(is_published=False)
-    )
-    db.execute(
-        update(ProjectProduct)
-        .where(ProjectProduct.project_id == project_id)
-        .where(ProjectProduct.is_active == True)
-        .values(is_published=True)
-    )
 
     project.is_live = True
     project.last_published = datetime.utcnow()

@@ -40,7 +40,6 @@ function renamePage(page) {
   page.name = newName
 }
 
-/* 🔑 KEYBOARD NAVIGATION (arrow keys like real tabs) */
 function handleKeydown(e, index) {
   const tabs = store.pages
   if (!tabs.length) return
@@ -126,7 +125,7 @@ function handleKeydown(e, index) {
   font-size: 14px;
 
   background: transparent;
-  color: #d1d5db; /* lighter gray for readability */
+  color: #d1d5db;
   transition: all 0.2s ease;
 }
 

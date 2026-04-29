@@ -4,7 +4,7 @@ const props = defineProps({
   project: Object
 })
 
-const emit = defineEmits(['edit', 'delete', 'toggle-active'])
+const emit = defineEmits(['edit', 'delete', 'toggle-published'])
 
 function onEdit() {
   emit('edit', props.product, props.project)
@@ -14,14 +14,13 @@ function onDelete() {
   emit('delete', props.product, props.project)
 }
 
-function onToggleActive() {
-  emit('toggle-active', props.product, props.project)
+function onTogglePublished() {
+  emit('toggle-published', props.product, props.project)
 }
 </script>
 
 <template>
   <article class="card" :aria-label="product?.name || 'Product card'">
-
     <div v-if="product?.image_url" class="product-image-container">
       <img
         :src="product.image_url"
@@ -55,14 +54,36 @@ function onToggleActive() {
         Delete
       </button>
 
-      <button type="button" class="primary" @click="onToggleActive">
-        {{ product?.is_active ? 'Deactivate' : 'Activate' }}
+      <button
+        type="button"
+        :class="product?.is_published ? 'active-btn' : 'inactive-btn'"
+        @click="onTogglePublished"
+      >
+        {{ product?.is_published ? 'Active' : 'Inactive' }}
       </button>
     </div>
   </article> 
 </template>
 
 <style scoped>
+.active-btn {
+  background: #0c6c2f;
+  color: #ffffff;
+}
+
+.active-btn:hover {
+  background: #084a20;
+}
+
+.inactive-btn {
+  background: #475569;
+  color: #ffffff;
+}
+
+.inactive-btn:hover {
+  background: #334155;
+}
+
 .card {
   background: linear-gradient(180deg, #132031 0%, #0f1825 100%);
   border: 1px solid #2a3d58;
@@ -73,7 +94,8 @@ function onToggleActive() {
 
   overflow: hidden;
 
-  width: 300px;
+  width: 100%;
+  max-width: 100%;
   min-height: 380px;
   max-height: 480px;
 

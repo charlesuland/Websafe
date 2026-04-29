@@ -157,16 +157,16 @@ async function saveProduct() {
   }
 }
 
-async function toggleActive(product) {
-  const newStatus = !product.is_active
+async function togglePublished(product) {
+  const newStatus = !product.is_published
 
-  await apiFetch(`/api/products/${product.id}/toggle-active`, {
+  await apiFetch(`/api/products/${product.id}/toggle-published`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ is_active: newStatus })
+    body: JSON.stringify({ is_published: newStatus })
   })
 
-  product.is_active = newStatus
+  product.is_published = newStatus
 }
 
 async function deleteProduct(productId, project) {
@@ -235,7 +235,7 @@ function handleFileSelect(e) {
           :project="p.project"
           @edit="() => openEdit(product, p.project)"
           @delete="() => deleteProduct(product.id, p.project)"
-          @toggle-active="() => toggleActive(product)"
+          @toggle-published="() => togglePublished(product)"
         />
       </div>
     </section>
@@ -460,7 +460,8 @@ button {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  justify-content: start;
+  grid-template-columns: repeat(3, 1fr);
   gap: 18px;
 }
 

@@ -1,5 +1,6 @@
 <script setup>
 import { useBuilderStore } from '@/stores/builderStore'
+import '@/assets/trash_icon.png'
 
 const store = useBuilderStore()
 
@@ -17,7 +18,11 @@ function onDrop(event) {
     @dragover.prevent
     @drop="onDrop"
   >
-    Drag Here To Delete
+    <img
+      src="@/assets/trash_icon.png"
+      alt="Trash icon"
+      class="trash-icon"
+    />
   </div>
 </template>
 
@@ -41,5 +46,11 @@ function onDrop(event) {
 
   font-weight: bold;
   box-shadow: 0 6px 18px rgba(0,0,0,.4);
+}
+
+.trash-icon {
+  width: 40px;
+  height: 40px;
+  margin: 8px;
 }
 </style>

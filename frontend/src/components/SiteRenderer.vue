@@ -39,7 +39,7 @@ const resolvedComponent = computed(() => {
       :is="resolvedComponent"
       v-bind="componentData.props"
       :projectId="projectId"
-    :hasProducts="hasProducts"
+      :hasProducts="hasProducts"
     />
   </div>
 </template>
