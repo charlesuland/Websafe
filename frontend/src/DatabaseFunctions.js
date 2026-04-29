@@ -132,41 +132,27 @@ async function apiFetchSecurityActivity(action = null) {
  * @returns {Promise<boolean>} true if enabled, false otherwise
  */
 export async function apiVendorStripeEnabled() {
-  const res = await fetch('/api/vendors/me', {
-    method: 'GET',
-    headers: {
-      ...getAuthHeaders(),
-    },
-  });
-  if (!res.ok) throw new Error(await res.text());
-  const vendor = await res.json();
-  return !!vendor.payouts_enabled;
+  const res = await apiFetch('/api/vendors/me')
+  if (!res.ok) throw new Error(await res.text())
+  const vendor = await res.json()
+  return !!vendor.payouts_enabled
 }
 
-
-
 export async function getProjectSlug(projectId) {
-  const res = await fetch(`/api/projects/${projectId}/slug`, {
-    headers: { ...getAuthHeaders() }
-  })
+  const res = await apiFetch(`/api/projects/${projectId}/slug`)
   if (!res.ok) throw new Error('Failed to fetch slug')
   return res.json()
 }
 
 export async function setProjectSlug(projectId, slug) {
-  const res = await fetch(`/api/projects/${projectId}/slug`, {
+  const res = await apiFetch(`/api/projects/${projectId}/slug`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeaders()
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ slug })
   })
-
   if (res.status === 409) throw new Error('That URL is already taken — try another name')
   if (res.status === 400) throw new Error('Invalid slug — use letters, numbers, and hyphens only')
   if (!res.ok) throw new Error('Failed to save slug')
-
   return res.json()
 }
 

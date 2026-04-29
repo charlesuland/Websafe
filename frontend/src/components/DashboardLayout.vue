@@ -1,13 +1,16 @@
 ```vue
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter, useRoute, useRoute } from 'vue-router'
-import { onMounted } from 'vue'
+import { useRouter, useRoute} from 'vue-router'
 import { apiFetchProjects } from '@/DatabaseFunctions'
 import { logoutSession } from '@/auth.js'
 
+
+
+
+
+
 const router = useRouter()
-const route = useRoute()
 const route = useRoute()
 
 const activeTab = ref('projects')
