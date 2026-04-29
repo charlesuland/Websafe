@@ -1,10 +1,11 @@
 <template>
-  <Navbar /> 
-
-  <HeroSection /> 
-  <FeatureSection />
-  <HowItWorksSection />
-  <PricingSection />
+  <Navbar />
+  <main id="main-content">
+    <HeroSection />
+    <FeatureSection />
+    <HowItWorksSection />
+    <PricingSection />
+  </main>
   <Footer />
 </template>
     

@@ -1,4 +1,5 @@
 <script setup>
+import { useRoute } from 'vue-router'
 import placeholder from '@/assets/placeholder_image.jpg'
 
 const props = defineProps({
@@ -11,14 +12,38 @@ const props = defineProps({
 })
 
 const emit = defineEmits(["update:src"])
+const route = useRoute()
 
-function handleUpload(event) {
+async function handleUpload(event) {
   const file = event.target.files[0]
   if (!file) return
 
-  const reader = new FileReader()
-  reader.onload = (e) => emit("update:src", e.target.result)
-  reader.readAsDataURL(file)
+  const projectId = route.params.projectId
+  if (!projectId) {
+    console.error('No project ID found for editor image upload')
+    return
+  }
+
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('alt_text', props.alt)
+
+  const token = localStorage.getItem('token')
+  const res = await fetch(`/api/projects/${projectId}/upload-image`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: formData
+  })
+
+  if (!res.ok) {
+    console.error('Image upload failed', await res.text())
+    return
+  }
+
+  const data = await res.json()
+  emit('update:src', data.url)
 }
 </script>
 

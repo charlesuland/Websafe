@@ -29,8 +29,8 @@ function autoResize(e) {
 <template>
   <div class="text-block"
     :style="{ 
-      backgroundColor: props.style.backgroundColor,
-      opacity: props.style.opacity 
+      backgroundColor: style.backgroundColor,
+      opacity: style.opacity 
     }">
     <textarea
       id="textField"

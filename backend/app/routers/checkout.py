@@ -51,6 +51,12 @@ async def create_checkout(
                 detail=f"Product {item.product_id} does not belong to project {checkout.project_id}",
             )
 
+        if not product.is_active or not product.is_published:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Product {item.product_id} is not available for purchase",
+            )
+
         if product.stock < item.quantity:
             raise HTTPException(
                 status_code=400,

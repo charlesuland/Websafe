@@ -27,6 +27,29 @@ def get_s3_client():
 
     return s3_client
 
+
+async def upload_image_to_s3(
+    file_bytes: bytes,
+    file_key: str,
+    content_type: str,
+    s3_client
+) -> str:
+    """
+    Upload image bytes to S3 and return the public URL.
+    
+    Args:
+        file_bytes: The image file content as bytes
+        file_key: The S3 key/path for the file
+        content_type: MIME type of the file
+        s3_client: Boto3 S3 resource client
+    
+    Returns:
+        str: The public URL of the uploaded image
+    """
+    obj = s3_client.Object("websafe", file_key)
+    obj.put(Body=file_bytes, ContentType=content_type)
+    return f"{s3_base_url}{file_key}"
+
 def get_db():
     db = SessionLocal()
     try:

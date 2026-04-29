@@ -70,9 +70,6 @@ async def register_user(user_in: UserIn, db=Depends(get_db)):
     db.commit()
 
 
-
-
-
     # automatically creates a vendor record for the user
     # router requires every user to have a vendor before it can make a project
     new_vendor = Vendor(
@@ -86,8 +83,6 @@ async def register_user(user_in: UserIn, db=Depends(get_db)):
     )
     db.add(new_vendor)
     db.commit()
-
-
     
     return {"message": "Account created successfully.", "username": new_user.username}
 '''

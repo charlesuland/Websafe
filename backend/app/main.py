@@ -3,11 +3,10 @@
 #
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from app.routers import users, projects, subscriptions
+from app.routers import users, projects, subscriptions, security 
 from app import auth
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.routers.users import create_test_user
 from app.routers.products import products_router
 from app.routers.orders import order_router
 from app.routers.vendors import vendor_router
@@ -26,8 +25,6 @@ load_dotenv('../.env')
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
 
-    create_test_user()
-
     print("APP STARTING...\nCREATING TABLES")
     yield
     print("APP SHUTTING DOWN")
@@ -40,7 +37,7 @@ app = FastAPI(lifespan=lifespan)
 # When the application is expanded, the list of hosts (origins) may need to increase
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

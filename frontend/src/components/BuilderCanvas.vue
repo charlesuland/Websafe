@@ -11,6 +11,10 @@ const canvas = ref(null)
 const resizing = ref(null)
 const dragging = ref(null)
 
+const props = defineProps({
+  projectId: String
+})
+
 const componentDefaults = {
   text: {
     colSpan: 4,
@@ -43,11 +47,25 @@ const componentDefaults = {
     colSpan: 12,
     rowSpan: 1,
     props: {
-      links: ["Home", "About"],
+      links: ["Home"],
       style: {
         backgroundColor: "#ffffff",
         color: "#000000"
       }
+    }
+  },
+
+  product: {
+    colSpan: 4,
+    rowSpan: 3,
+    props: {
+      productId: 0,
+      name: "Sample Product",
+      description: "Product description goes here",
+      price: 2999,
+      imageUrl: null,
+      altText: "Product image",
+      inStock: true
     }
   }
 }
@@ -104,6 +122,11 @@ function onDrop(event) {
   const { col, row } = getGridPosition(event, canvas.value, dragging.value)
 
   const config = componentDefaults[component.type]
+  
+  if (!config) {
+    console.error(`Component type "${component.type}" not found in defaults`)
+    return
+  }
 
   store.addComponent({
     id: crypto.randomUUID(),
@@ -196,11 +219,11 @@ function getGridPosition(event, canvas, component = null) {
         @click="store.selectComponent(component)"
         
         :style="{
-          gridColumn: component.col + ' / span ' + component.colSpan,
-          gridRow: component.row + ' / span ' + component.rowSpan
+          gridColumn: (component.col) + ' / span ' + component.colSpan,
+          gridRow: (component.row) + ' / span ' + component.rowSpan
         }"
       >
-        <ComponentRenderer :componentData="component" />
+        <ComponentRenderer :componentData="component" :projectId="projectId" />
         <div class="resize-handle" @mousedown="startResize($event, component)" draggable="false"></div>
       </div>
     </VueDraggable>
@@ -244,10 +267,16 @@ function getGridPosition(event, canvas, component = null) {
 
 .canvas-item {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
   position: relative;
   transition: all .2s ease;
+  overflow: hidden;
+}
+
+.canvas-item > * {
+  flex: 1;
+  width: 100%;
+  height: 100%;
 }
 
 .canvas-item.selected {
