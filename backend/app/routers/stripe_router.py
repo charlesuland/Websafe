@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, Body, Depends, HTTPException
 from pydantic import BaseModel
 from sqlmodel import select
@@ -7,6 +9,7 @@ from app.stripe import get_stripe_client
 import os
 
 from app.utils import is_subscription_active
+from app.schemas import CustomerIn
 
 router = APIRouter(prefix="/stripe", tags=["stripe"])
 stripe = get_stripe_client()
@@ -121,10 +124,11 @@ async def create_connect_account(
         raise HTTPException(status_code=400, detail=str(e))
     
 
-
+class ProjectIdRequest(BaseModel):
+    project_id: int
 
 @router.post("/create-cart-checkout")
-async def create_cart_checkout(cart_data: dict = Body(...), db = Depends(get_db)):
+async def create_cart_checkout(project_id: ProjectIdRequest, customer: CustomerIn, cart_data: dict = Body(...), db = Depends(get_db)):
     # Example cart_data: {"items": [{"id": "prod_1", "qty": 2, "price": 2000}, {"id": "prod_2", "qty": 1, "price": 1500}]}
     vendor = await db.execute(
         select(Vendor)
@@ -132,6 +136,7 @@ async def create_cart_checkout(cart_data: dict = Body(...), db = Depends(get_db)
         .join(ProjectProduct, ProjectProduct.project_id == Project.id)
         .where(ProjectProduct.id == cart_data["items"][0]["id"])
     ).scalars().first()
+    # this also needs to send a customer
     stripe_connect_id = vendor.stripe_connect_id if vendor else None
     if not stripe_connect_id:
         raise HTTPException(status_code=400, detail="Vendor does not have a Stripe Connect account")
@@ -162,8 +167,10 @@ async def create_cart_checkout(cart_data: dict = Body(...), db = Depends(get_db)
             # Stripe metadata has a 50-key limit and 500-character value limit.
             # For a cart, it's often best to pass a comma-separated string or a Cart ID.
             metadata={
+                "project_id": project_id.project_id,
                 "product_ids": ",".join(internal_ids),
-                "cart_id": cart_data.get("cart_id")
+                "cart_id": cart_data.get("cart_id"),
+                "customer": json.dumps(customer.model_dump()),
             },
             # If splitting payment for the whole cart to ONE vendor:
             payment_intent_data={

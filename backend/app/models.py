@@ -159,13 +159,13 @@ class ProjectOrder(Base):
     __tablename__ = "project_orders"
     stripe_id: Mapped[str]
     item_price: Mapped[int]
-    shipping_price: Mapped[int]
+    #shipping_price: Mapped[int]
     currency: Mapped[str] = mapped_column(default="USD")
     payment_status: Mapped[bool]
     project: Mapped[int] = mapped_column(ForeignKey("projects.id"))
     platform_fee_cents: Mapped[int]
     vendor_amount_cents: Mapped[int]
-    meta: Mapped[dict] = mapped_column(JSON)
+    #meta: Mapped[dict] = mapped_column(JSON)
 
 
 class ShippingStatus(enum.Enum):

@@ -204,3 +204,14 @@ class SubscriptionOut(SubscriptionBase):
     id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+class CustomerIn(BaseModel):
+    first_name: str
+    last_name: str
+    email: EmailStr
+    phone: str
+    house_number: int
+    street_name: str
+    city: str
+    state: str 
+    postal_code: int

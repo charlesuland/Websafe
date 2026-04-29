@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from app.stripe import construct_webhook_event, get_stripe_client
 from app.dependencies import get_db
 from sqlalchemy.orm import Session
-from app.models import Subscription, User
+from app.models import ProjectOrder, Subscription, User
 from sqlmodel import select
 from datetime import datetime
 import json
+from app.models import Vendor
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
@@ -42,10 +43,14 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     elif event['type'] == 'account.updated':
         account_data = event['data']['object']
         await handle_account_updated(account_data, db)
+    elif event['type'] == 'checkout.session.completed':
+        session_data = event['data']['object'].to_dict()
+        await handle_checkout_session_completed(session_data, db)
     else:
-        # Unexpected event type
+
         pass
-from app.models import Vendor
+    return {"status": "success"}
+
 async def handle_account_updated(account_data, db: Session):
     # Stripe Connect account id
     stripe_connect_id = account_data['id']
@@ -128,3 +133,38 @@ async def handle_invoice_payment_failed(invoice_data, db: Session):
         if subscription:
             subscription.status = 'PAST_DUE'
             db.commit()
+
+async def handle_checkout_session_completed(session_data, db: Session):
+    # You can handle post-checkout logic here, e.g., mark subscription as active
+    # create order
+    meta = session_data.get('metadata', {})
+    project_id = meta.get('project_id')
+
+    # create order items
+    order = ProjectOrder(
+        project=project_id,
+        stripe_id=session_data['id'],
+        amount_total=session_data['amount_total'],
+        payment_status=True,
+        customer_email=session_data['customer_details']['email'],
+        item_price=session_data['amount_total'],
+        platform_fee_cents=session_data['application_fee_amount'],
+        vendor_amount_cents=session_data['amount_total'] - session_data['application_fee_amount'],
+
+    )
+    db.add(order)
+    db.commit()
+    db.refresh(order)
+
+    for   
+    #create customer record
+        new_order_item = ProjectOrderItem(
+            order=order.id,
+            item=item['id'],
+            quantity=item['quantity'],
+            price_at_purchase=item['price']
+            tracking_number="",
+            shipping_status=ShippingStatus.PENDING
+        )
+
+    pass
