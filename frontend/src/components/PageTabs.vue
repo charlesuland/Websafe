@@ -5,7 +5,6 @@ const store = useBuilderStore()
 
 function selectPage(name) {
   store.updateCurrentPageLayout()
-
   store.currentPage = name
 
   const page = store.pages.find(p => p.name === name)
@@ -31,9 +30,7 @@ function addPage() {
 
 function renamePage(page) {
   const newName = prompt("Rename page", page.name)
-  
-  if (!newName)
-    return
+  if (!newName) return
 
   if (store.pages.some(p => p.name === newName)) {
     alert("Page already exists")
@@ -42,26 +39,57 @@ function renamePage(page) {
 
   page.name = newName
 }
+
+function handleKeydown(e, index) {
+  const tabs = store.pages
+  if (!tabs.length) return
+
+  if (e.key === 'ArrowRight') {
+    const next = (index + 1) % tabs.length
+    selectPage(tabs[next].name)
+  }
+
+  if (e.key === 'ArrowLeft') {
+    const prev = (index - 1 + tabs.length) % tabs.length
+    selectPage(tabs[prev].name)
+  }
+}
 </script>
 
 <template>
   <div class="tabs-container">
     <h2 class="tabs-header">Pages</h2>
-    <div class="tabs" role="tablist" aria-label="Project pages">
+
+    <div 
+      class="tabs" 
+      role="tablist" 
+      aria-label="Project pages"
+    >
       <button
-        v-for="page in store.pages"
-        @dblclick="renamePage(page)"
+        v-for="(page, index) in store.pages"
         :key="page.name"
-        :class="['tab', page.name === store.currentPage ? 'active' : '']"
+        class="tab""
+        :class="{ active: page.name === store.currentPage }"
         @click="selectPage(page.name)"
+        @dblclick="renamePage(page)"
+        @keydown="handleKeydown($event, index)"
+
         role="tab"
         type="button"
+        tabindex="0"
         :aria-selected="page.name === store.currentPage"
+        :aria-label="`Page ${page.name}`"
       >
         {{ page.name }}
       </button>
 
-      <button class="tab add" type="button" @click="addPage" aria-label="Add page">
+      <button 
+        class="tab add" 
+        type="button"
+        @click="addPage"
+        role="tab"
+        aria-label="Add new page"
+      >
         +
       </button>
     </div>
@@ -71,16 +99,15 @@ function renamePage(page) {
 <style scoped>
 .tabs-container {
   display: flex;
-  flex-direction: row;
   align-items: center;
   gap: 20px;
   width: 100%;
-  background: #ffffff;
+  background: #111827;
   padding: 0 10px;
 }
 
 .tabs-header {
-  color: black;
+  color: #f9fafb;
 }
 
 .tabs {
@@ -96,18 +123,19 @@ function renamePage(page) {
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
+
   background: transparent;
-  color: #555;
+  color: #d1d5db;
   transition: all 0.2s ease;
 }
 
 .tab:hover {
-  background: #f3f3f3;
-  color: #000;
+  background: #374151;
+  color: #ffffff;
 }
 
 .tab.active {
-  background: #2f7df6;
+  background: #2563eb;
   color: white;
   font-weight: 500;
 }
@@ -115,10 +143,16 @@ function renamePage(page) {
 .tab.add {
   font-weight: bold;
   font-size: 16px;
-  color: #2f7df6;
+  color: #60a5fa;
 }
 
 .tab.add:hover {
-  background: #e8f0ff;
+  background: #1e3a8a;
+  color: #ffffff;
+}
+
+.tab:focus-visible {
+  outline: 3px solid #f59e0b;
+  outline-offset: 2px;
 }
 </style>

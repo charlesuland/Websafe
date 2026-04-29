@@ -18,10 +18,18 @@ class User(Base):
     last_name: Mapped[Optional[str]] = mapped_column(nullable=True)
     stripe_customer_id: Mapped[Optional[str]] = mapped_column(nullable=True)
     
-
-
-    # for security logs
     security_logs: Mapped[list["SecurityLog"]] = relationship("SecurityLog", back_populates="user", cascade="all, delete-orphan")
+
+
+class RefreshSession(Base):
+    __tablename__ = "refresh_sessions"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    jti: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
+    expires_at: Mapped[datetime]
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    user_agent: Mapped[Optional[str]] = mapped_column(nullable=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(nullable=True)
 
 
 class SubscriptionStatus(enum.Enum):
@@ -100,6 +108,7 @@ class Project(Base):
     is_live: Mapped[bool] = mapped_column(default=False)
     last_published: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     preview_image: Mapped[int] = mapped_column(ForeignKey("media_object_metadata.id"), nullable=True)
+    slug: Mapped[Optional[str]] = mapped_column(unique=True, index=True, nullable=True)
 
     preview = relationship(
         "MediaObjectMetadata",
@@ -116,8 +125,6 @@ class ProjectPage(Base):
     layout: Mapped[dict] = mapped_column(JSON)
 
 
-
-# --- Security Log and Report Models ---
 class SecurityLog(Base):
     __tablename__ = "security_logs"
 

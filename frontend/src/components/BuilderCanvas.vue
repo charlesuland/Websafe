@@ -50,6 +50,8 @@ const componentDefaults = {
       links: ["Home"],
       style: {
         backgroundColor: "#ffffff",
+        backgroundOpacity: 1,
+        fontSize: 18,
         color: "#000000"
       }
     }
@@ -189,6 +191,10 @@ function getGridPosition(event, canvas, component = null) {
   return { col, row }
 }
 
+function isLocked(component) {
+  return component.type === 'product'
+}
+
 </script>
 
 <template>
@@ -211,12 +217,14 @@ function getGridPosition(event, canvas, component = null) {
         v-for="component in components"
         :key="component.id"
         :class="{ selected: store.selectedComponent?.id === component.id }"
-        draggable="true"
 
-        @dragstart="startDrag($event, component)"
-        @drag="dragMove($event, component)"
-        @dragend="dragEnd($event, component)"
-        @click="store.selectComponent(component)"
+        :draggable="!isLocked(component)"
+
+        @dragstart="!isLocked(component) && startDrag($event, component)"
+        @drag="!isLocked(component) && dragMove($event, component)"
+        @dragend="!isLocked(component) && dragEnd($event, component)"
+        
+        @click="!isLocked(component) && store.selectComponent(component)"
         
         :style="{
           gridColumn: (component.col) + ' / span ' + component.colSpan,
@@ -224,7 +232,12 @@ function getGridPosition(event, canvas, component = null) {
         }"
       >
         <ComponentRenderer :componentData="component" :projectId="projectId" />
-        <div class="resize-handle" @mousedown="startResize($event, component)" draggable="false"></div>
+        <div 
+          v-if="!isLocked(component)"
+          class="resize-handle"
+          @mousedown="startResize($event, component)"
+          draggable="false">
+        </div>
       </div>
     </VueDraggable>
   </div>
@@ -233,78 +246,64 @@ function getGridPosition(event, canvas, component = null) {
 <style scoped>
 .vue-draggable-wrapper {
   display: contents;
-  width: 1100px;
 }
 
 .canvas {
-  position: relative;
-  margin: 0px;
-  padding: 0px;
-  flex-direction: column;
-  overflow: hidden;
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   grid-auto-rows: 80px;
   width: 100%;
-  min-height: 100%;
   min-height: 800px;
 
-  background-color: #e2e2e2;
+  background-color: #ffffff;
 
   background-image:
-    linear-gradient(#ffffff 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255, 255, 255) 1px, transparent 1px);
+    linear-gradient(#e5e7eb 1px, transparent 1px),
+    linear-gradient(90deg, #e5e7eb 1px, transparent 1px);
 
   background-size:
     100% 80px,
-    calc(100% / 12) 100%; 
+    calc(100% / 12) 100%;
 
-  background-repeat: repeat;
-  background-blend-mode: lighten;
-
-  box-shadow: inset 0 0 15px rgba(0,0,0,0.1);
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.08);
 }
 
 .canvas-item {
   display: flex;
-  align-items: stretch;
   position: relative;
-  transition: all .2s ease;
   overflow: hidden;
 }
 
-.canvas-item > * {
-  flex: 1;
-  width: 100%;
-  height: 100%;
+.canvas-item.selected {
+  outline: 3px solid #2563eb;
 }
 
-.canvas-item.selected {
-  outline: 2px solid cyan;
+.canvas-item:hover:not(.selected) {
+  outline: 2px solid #93c5fd;
+}
+
+.canvas-item:focus-visible {
+  outline: 3px solid #f59e0b;
+  outline-offset: 2px;
 }
 
 .canvas-item:active {
   cursor: grabbing;
-  box-shadow: 10px 10px 15px 10px rgba(0,0,0,0.4);
   transform: scale(0.98);
-}
-
-.canvas-item:hover:not(.selected) {
-  outline: 2px solid rgba(0, 255, 242, 0.5);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.7);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
 .resize-handle {
   position: absolute;
   bottom: 6px;
   right: 6px;
-
   width: 16px;
   height: 16px;
-
   cursor: se-resize;
 
   background:
-    linear-gradient(135deg, transparent 50%, #666 50%),
-    linear-gradient(135deg, transparent 65%, #999 65%);
+    linear-gradient(135deg, transparent 50%, #444 50%),
+    linear-gradient(135deg, transparent 65%, #888 65%);
 }
 </style>

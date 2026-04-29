@@ -8,11 +8,11 @@ from datetime import datetime
 import json
 from app.models import Vendor
 
-router = APIRouter(prefix="/webhooks", tags=["webhooks"])
+webhooks_router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
 stripe_client = get_stripe_client()
 
-@router.post("/stripe")
+@webhooks_router.post("/stripe")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     payload = await request.body()
     sig_header = request.headers.get('stripe-signature')
@@ -63,6 +63,8 @@ async def handle_account_updated(account_data, db: Session):
         if payouts_enabled:
             vendor.payouts_enabled = True
             db.commit()
+
+            
 async def handle_subscription_created(subscription_data, db: Session):
     stripe_sub_id = subscription_data['id']
     user_stripe_id = subscription_data['customer']

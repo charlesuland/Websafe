@@ -1,36 +1,34 @@
 <script setup>
-import { ref, watch, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { getAuthHeaders } from '@/auth'
+import { ref, watch, onMounted, computed, nextTick } from 'vue'
 import { useBuilderStore } from '@/stores/builderStore'
+import { hexToRgb } from '@/utils/colorUtils.js'
 
 const props = defineProps({
   links: Array,
   projectId: String,
   style: {
-    type: Object,
-    default: () => ({
-      fontSize: 18,
-      textAlign: "center",
-      backgroundColor: "#ffffff",
-      backgroundOpacity: 1,
-      color: "#000000"
-    })
+    fontSize: 18,
+    backgroundColor: "#ffffff",
+    backgroundOpacity: 1,
+    color: "#000000"
   }
 })
 
 const emit = defineEmits(['update:links'])
-const links = ref([...props.links])
+const links = ref(
+  props.links.map(l => ({
+    id: l.id || crypto.randomUUID(),
+    name: l.name ?? l
+  }))
+)
 const availablePages = ref([])
 const store = useBuilderStore()
-const router = useRouter()
 const updatingFromProps = ref(false)
 
 function getAvailableOptionsForIndex(currentIndex) {
   const options = [...availablePages.value]
   
-  // Always include the current selection for this dropdown
-  const currentLink = links.value[currentIndex]
+  const currentLink = links.value[currentIndex]?.name
   if (currentLink && !options.includes(currentLink)) {
     options.push(currentLink)
   }
@@ -38,15 +36,19 @@ function getAvailableOptionsForIndex(currentIndex) {
   return options
 }
 
-watch(() => props.links, (newLinks) => {
+watch(() => props.links, async (newLinks) => {
   updatingFromProps.value = true
-  links.value = [...newLinks]
+  links.value = newLinks.map(l => ({
+    id: l.id || crypto.randomUUID(),
+    name: l.name ?? l
+  }))
+  await nextTick()
   updatingFromProps.value = false
 }, { deep: true })
 
 watch(links, (newLinks) => {
   if (!updatingFromProps.value) {
-    emit('update:links', newLinks)
+    emit('update:links', newLinks.map(l => ({ ...l })))
   }
 }, { deep: true, immediate: false })
 
@@ -80,14 +82,12 @@ async function fetchAvailablePages() {
   }
 }
 
-function goTo(page) {
-  if (props.projectId) {
-    router.push(`/site/${props.projectId}/${encodeURIComponent(page)}`)
-  }
-}
-
-function addLink() {
-  links.value.push('')
+async function addLink() {
+  links.value.push({
+    id: crypto.randomUUID(),
+    name: ''
+  })
+  await nextTick
 }
 
 function removeLink(index) {
@@ -95,18 +95,38 @@ function removeLink(index) {
 }
 
 function updateLink(index, newValue) {
-  links.value[index] = newValue
+  links.value[index].name = newValue
 }
+
+const navbarContainerStyle = computed(() => {
+  const s = props.style || {}
+
+  const rgb = hexToRgb(s.backgroundColor || '#fff')
+  const opacity = s.backgroundOpacity ?? 1
+
+  return {
+    backgroundColor: `rgba(${rgb}, ${opacity})`
+  }
+})
+
+const selectStyle = computed(() => {
+  const s = props.style || {}
+  return {
+    fontSize: (s.fontSize || 18) + 'px',
+    color: s.color || '#000'
+  }
+})
+
 </script>
 
 <template>
-  <div class="navbar" :style="{ backgroundColor: style.backgroundColor, color: style.color }">
-    <div class="nav-link-container" v-for="(link, index) in links" :key="index">
+  <div class="navbar" :style="navbarContainerStyle">
+    <div class="nav-link-container" v-for="(link, index) in links" :key="link.id">
       <select
-        :value="link"
+        :value="link.name"
         @change="updateLink(index, $event.target.value)"
         class="nav-link-select"
-        :style="{ fontSize: style.fontSize + 'px' }"
+        :style="selectStyle"
       >
         <option value="">Select Page</option>
         <option
@@ -125,6 +145,7 @@ function updateLink(index, newValue) {
 
 <style scoped>
 .navbar {
+  width: 100%;
   border-radius: 5px;
   display: flex;
   justify-content: center;

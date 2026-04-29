@@ -1,75 +1,72 @@
 <script setup>
-  const paletteItems = [
-    { type: 'text', label: 'Text Block' },
-    { type: 'image', label: 'Image Block' },
-    { type: 'navbar', label: 'Navbar' },
-    { type: 'product', label: 'Product Card' }
-    
-    // Not implemented yet so just holding off until text and images are solid
-    //{ type: 'container', label: 'Container' }
-  ]
+const paletteItems = [
+  { type: 'text', label: 'Text Block' },
+  { type: 'image', label: 'Image Block' },
+  { type: 'navbar', label: 'Navbar' },
+]
 
-  function startDrag(type, event) {
-    event.dataTransfer.setData(
-      'component',
-      JSON.stringify({ type })
-    )
-  }
+function startDrag(type, event) {
+  event.dataTransfer.setData(
+    'component',
+    JSON.stringify({ type })
+  )
+}
 </script>
 
 <template>
-  <div class="palette" aria-label="Component palette">
+  <div 
+    class="palette" 
+    role="region" 
+    aria-label="Component palette"
+  >
     <button
       v-for="item in paletteItems"
       :key="item.type"
       class="palette-item"
       type="button"
       draggable="true"
+      :aria-label="`Drag ${item.label}`"
       @dragstart="startDrag(item.type, $event)"
     >
       {{ item.label }}
     </button>
-
   </div>
 </template>
 
 <style scoped>
-  .palette {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    width: 100%;
-    height: 100%;
-    background-color: rgb(226, 226, 226);
-    box-shadow: inset 0 0px 5px rgba(0, 0, 0, 0.5);
-    height: 100%;
-    padding: 20px;
-    border-radius: 10px;
-    border: solid;
-    border-color: rgb(255, 255, 255);
-    border-width: 5px;
-  }
+.palette {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: #1f2937;
+  padding: 16px;
+  border-radius: 10px;
+}
 
-  .palette-item {
-    background: #2f7df6;
-    color: white;
-    border: 1px solid darkgray;
-    border-radius: 8px;
-    padding: 12px;
-    cursor: grab;
-    text-align: center;
-    font-weight: bold;
-    box-shadow: 10px, 10px, 5px, black;
-    transition: all .2s ease;
-  }
+.palette-item {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: grab;
+  text-align: center;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
 
-  .palette-item:hover {
-    background: #99c2ff;
-    border-color: #5a8cff;
-  }
+.palette-item:hover {
+  background: #1d4ed8;
+}
 
-  .palette-item:active {
-    cursor: grabbing;
-    transform: scale(0.98);
-  }
+.palette-item:active {
+  cursor: grabbing;
+  transform: scale(0.97);
+}
+
+/* KEYBOARD FOCUS */
+.palette-item:focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 2px;
+}
 </style>

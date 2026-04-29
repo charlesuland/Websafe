@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Request
 from fastapi.responses import StreamingResponse
 from app.dependencies import get_db, get_current_user, get_s3_client, s3_base_url, upload_image_to_s3
+from app.activity_log import queue_security_event, describe_activity
 from app.models import (
     Project,
     ProjectPage,
@@ -10,6 +11,7 @@ from app.models import (
     ProjectProduct,
     ProductImage
 )
+from app.utils import slugify
 from fastapi import Depends
 from pydantic import BaseModel, EmailStr
 from typing import List, Dict, Any, Optional
@@ -38,10 +40,12 @@ class DraftSaveRequest(BaseModel):
 class ProjectIn(BaseModel):
     name: str
 
+class SlugUpdate(BaseModel):
+    slug: str
+
 
 def build_media_proxy_url(file_key: str) -> str:
     return f"/api/site/_media?file_key={quote(file_key, safe='')}"
-
 
 def normalize_media_url(url: Any) -> Any:
     if not isinstance(url, str) or not url:
@@ -103,6 +107,7 @@ async def get_projects(db=Depends(get_db), user=Depends(get_current_user)):
         projects_data.append({
             "id": p.id,
             "name": p.name,
+            "slug": p.slug,
             "is_live": p.is_live,
             "last_updated": p.updated_at,
             "last_published": p.last_published,
@@ -111,8 +116,9 @@ async def get_projects(db=Depends(get_db), user=Depends(get_current_user)):
 
     return projects_data
 
+
 @projects_router.post("/create")
-async def create_project(projectIn: ProjectIn, db=Depends(get_db), user=Depends(get_current_user)):
+async def create_project(projectIn: ProjectIn, request: Request, db=Depends(get_db), user=Depends(get_current_user)):
     project_name = projectIn.name
 
     vendor = db.execute(
@@ -135,17 +141,25 @@ async def create_project(projectIn: ProjectIn, db=Depends(get_db), user=Depends(
     draft_page = DraftProjectPage(project=project.id, name="Home", layout=[])
 
     db.add(draft_page)
+    queue_security_event(
+        db,
+        user_id=user.id,
+        action="project_created",
+        request=request,
+        details=describe_activity("project", project.name, "created"),
+    )
     db.commit()
 
     return {
         "id": project.id,
         "name": project.name,
+        "slug": project.slug,
         "is_live": project.is_live,
         "last_published": project.last_published
     }
 
 @projects_router.delete("/{project_id}/delete")
-async def delete_project(project_id: int, db=Depends(get_db), user=Depends(get_current_user)):
+async def delete_project(project_id: int, request: Request, db=Depends(get_db), user=Depends(get_current_user)):
     project = db.get(Project, project_id)
 
     if not project:
@@ -155,13 +169,20 @@ async def delete_project(project_id: int, db=Depends(get_db), user=Depends(get_c
 
     if vendor.owner != user.id:
         raise HTTPException(403)
-    
+    project_name = project.name
 
     db.execute(DraftProjectPage.__table__.delete().where(DraftProjectPage.project == project_id))
     db.execute(ProjectPage.__table__.delete().where(ProjectPage.project_id == project_id))
     db.execute(ProjectProduct.__table__.delete().where(ProjectProduct.project_id == project_id))
 
     db.delete(project)
+    queue_security_event(
+        db,
+        user_id=user.id,
+        action="project_deleted",
+        request=request,
+        details=describe_activity("project", project_name, "deleted"),
+    )
     db.commit()
 
     return {"status": "deleted"}
@@ -225,7 +246,7 @@ async def get_draft_pages(project_id: int, db=Depends(get_db), user=Depends(get_
 
 
 @projects_router.post("/{project_id}/publish")
-async def publish_project(project_id: int, db=Depends(get_db), user=Depends(get_current_user)):
+async def publish_project(project_id: int, request: Request, db=Depends(get_db), user=Depends(get_current_user)):
     project = db.get(Project, project_id)
 
     if not project:
@@ -234,6 +255,13 @@ async def publish_project(project_id: int, db=Depends(get_db), user=Depends(get_
     vendor = db.get(Vendor, project.vendor)
     if vendor.owner != user.id:
         raise HTTPException(403)
+
+    # Block publish if no slug has been set yet
+    if not project.slug:
+        raise HTTPException(
+            status_code=400,
+            detail="Set a custom URL for your store before publishing"
+        )
 
     db.execute(
         ProjectPage.__table__.delete().where(ProjectPage.project_id == project_id)
@@ -251,30 +279,27 @@ async def publish_project(project_id: int, db=Depends(get_db), user=Depends(get_
         )
         db.add(page)
 
-    db.execute(
-        update(ProjectProduct)
-        .where(ProjectProduct.project_id == project_id)
-        .values(is_published=False)
-    )
-    db.execute(
-        update(ProjectProduct)
-        .where(ProjectProduct.project_id == project_id)
-        .where(ProjectProduct.is_active == True)
-        .values(is_published=True)
-    )
 
     project.is_live = True
     project.last_published = datetime.utcnow()
+    queue_security_event(
+        db,
+        user_id=user.id,
+        action="project_published",
+        request=request,
+        details=describe_activity("project", project.name, "published"),
+    )
 
     db.commit()
 
-    return {"status": "published"}
+    return {"status": "published", "url": f"/site/{project.slug}"}
 
 
 @projects_router.post("/{project_id}/save-draft")
 async def save_draft_pages(
     project_id: int,
     data: DraftSaveRequest,
+    request: Request,
     db=Depends(get_db),
     user=Depends(get_current_user),
     s3=Depends(get_s3_client)
@@ -341,11 +366,88 @@ async def save_draft_pages(
             raise HTTPException(400, f"Invalid preview image: {str(e)}")
     
     project.last_updated = datetime.utcnow()
+    queue_security_event(
+        db,
+        user_id=user.id,
+        action="project_saved",
+        request=request,
+        details=describe_activity(
+            "project",
+            project.name,
+            "saved",
+            extra=f"{len(data.pages)} page(s) updated",
+        ),
+    )
 
     db.commit()
 
     return {"status": "saved"}
 
+
+# ---------------------------------------------------------------
+# Slug endpoints
+# ---------------------------------------------------------------
+
+@projects_router.get("/{project_id}/slug")
+async def get_project_slug(project_id: int, db=Depends(get_db), user=Depends(get_current_user)):
+    project = db.get(Project, project_id)
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    vendor = db.execute(
+        select(Vendor).where(Vendor.owner == user.id)
+    ).scalar_one_or_none()
+
+    if not vendor or project.vendor != vendor.id:
+        raise HTTPException(status_code=403, detail="Not your project")
+
+    return {
+        "slug": project.slug,
+        "url": f"/site/{project.slug}" if project.slug else None
+    }
+
+
+@projects_router.put("/{project_id}/slug")
+async def set_project_slug(project_id: int, body: SlugUpdate, db=Depends(get_db), user=Depends(get_current_user)):
+    project = db.get(Project, project_id)
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    vendor = db.execute(
+        select(Vendor).where(Vendor.owner == user.id)
+    ).scalar_one_or_none()
+
+    if not vendor or project.vendor != vendor.id:
+        raise HTTPException(status_code=403, detail="Not your project")
+
+    clean_slug = slugify(body.slug)
+
+    if not clean_slug:
+        raise HTTPException(status_code=400, detail="Slug is empty after cleaning — use letters, numbers, or hyphens")
+
+    # Check uniqueness against other projects
+    existing = db.execute(
+        select(Project).where(
+            Project.slug == clean_slug,
+            Project.id != project_id
+        )
+    ).scalar_one_or_none()
+
+    if existing:
+        raise HTTPException(status_code=409, detail="That URL is already taken — try another name")
+
+    project.slug = clean_slug
+    db.commit()
+    db.refresh(project)
+
+    return {"slug": project.slug, "url": f"/site/{project.slug}"}
+
+
+# ---------------------------------------------------------------
+# Public routes (no auth)
+# ---------------------------------------------------------------
 
 @public_router.get("/_media")
 async def proxy_project_media(file_key: str, s3=Depends(get_s3_client)):
@@ -368,6 +470,7 @@ async def proxy_project_media(file_key: str, s3=Depends(get_s3_client)):
 @projects_router.post("/{project_id}/upload-image")
 async def upload_project_image(
     project_id: int,
+    request: Request,
     file: UploadFile = File(...),
     alt_text: Optional[str] = Form(None),
     db=Depends(get_db),
@@ -397,6 +500,18 @@ async def upload_project_image(
         alt_text=alt_text,
     )
     db.add(metadata)
+    queue_security_event(
+        db,
+        user_id=user.id,
+        action="project_saved",
+        request=request,
+        details=describe_activity(
+            "project",
+            project.name,
+            "saved",
+            extra=f"image uploaded ({filename})",
+        ),
+    )
     db.commit()
 
     return {"url": build_media_proxy_url(file_key)}
@@ -416,30 +531,30 @@ async def assignProducts(project_id: int, data: dict, db=Depends(get_db), user=D
 
 @public_router.get("/{project_slug}/{page_name}")
 async def get_published_page(project_slug: str, page_name: str, db=Depends(get_db)):
-    # For now, we'll use project ID as slug. In a real app, you'd have a slug field
-    try:
-        project_id = int(project_slug)
-    except ValueError:
-        raise HTTPException(status_code=404, detail="Project not found")
+    # Resolve by slug instead of numeric ID
+    project = db.execute(
+        select(Project).where(
+            Project.slug == project_slug,
+            Project.is_live == True
+        )
+    ).scalar_one_or_none()
 
-    project = db.get(Project, project_id)
-    if not project or not project.is_live:
-        raise HTTPException(status_code=404, detail="Project not found or not published")
+    if not project:
+        raise HTTPException(status_code=404, detail="Store not found or not published")
 
     page = db.execute(
         select(ProjectPage).where(
-            ProjectPage.project_id == project_id,
+            ProjectPage.project_id == project.id,
             ProjectPage.name == page_name
         )
     ).scalar_one_or_none()
 
     if not page:
-        raise HTTPException(status_code=404, detail="Page not found")
+        raise HTTPException(status_code=404, detail=f"Page '{page_name}' not found")
 
-    # Check if project has products
     has_products = db.execute(
         select(ProjectProduct).where(
-            ProjectProduct.project_id == project_id,
+            ProjectProduct.project_id == project.id,
             ProjectProduct.is_published == True,
             ProjectProduct.is_active == True
         ).limit(1)
@@ -448,30 +563,32 @@ async def get_published_page(project_slug: str, page_name: str, db=Depends(get_d
     return {
         "layout": normalize_layout_media(page.layout),
         "has_products": has_products,
-        "project_name": project.name
+        "project_name": project.name,
+        "slug": project.slug,
     }
 
 
 @public_router.get("/{project_slug}/products")
 async def get_project_products(project_slug: str, db=Depends(get_db)):
-    try:
-        project_id = int(project_slug)
-    except ValueError:
-        raise HTTPException(status_code=404, detail="Project not found")
+    # Resolve by slug instead of numeric ID
+    project = db.execute(
+        select(Project).where(
+            Project.slug == project_slug,
+            Project.is_live == True
+        )
+    ).scalar_one_or_none()
 
-    project = db.get(Project, project_id)
-    if not project or not project.is_live:
-        raise HTTPException(status_code=404, detail="Project not found or not published")
+    if not project:
+        raise HTTPException(status_code=404, detail="Store not found or not published")
 
     products = db.execute(
         select(ProjectProduct).where(
-            ProjectProduct.project_id == project_id,
+            ProjectProduct.project_id == project.id,
             ProjectProduct.is_published == True,
             ProjectProduct.is_active == True
         )
     ).scalars().all()
 
-    # Get image URLs for products
     product_data = []
     for product in products:
         image_url = None
@@ -494,5 +611,6 @@ async def get_project_products(project_slug: str, db=Depends(get_db)):
 
     return {
         "products": product_data,
-        "project_name": project.name
+        "project_name": project.name,
+        "slug": project.slug,
     }

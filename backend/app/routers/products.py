@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Depends, Body, Form
+from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Depends, Body, Form, Request
 from app.dependencies import get_db, get_current_active_user, get_s3_client, s3_base_url, upload_image_to_s3
+from app.activity_log import queue_security_event, describe_activity
 from app.models import ProjectProduct, MediaObjectMetadata, Project, DraftProjectPage, Vendor
 from sqlalchemy import update, select
 from pydantic import BaseModel
@@ -33,8 +34,8 @@ class ProductUpdate(BaseModel):
     alt_text: str | None = None
 
 
-class ToggleActive(BaseModel):
-    is_active: bool
+class TogglePublished(BaseModel):
+    is_published: bool
 
 
 # =========================
@@ -44,6 +45,7 @@ class ToggleActive(BaseModel):
 @products_router.post("/create-product")
 async def create_product(
     product_in: ProductIn,
+    request: Request,
     db=Depends(get_db),
     user=Depends(get_current_active_user),
 ):
@@ -51,6 +53,13 @@ async def create_product(
 
     new_product = ProjectProduct(**product_in.model_dump())
     db.add(new_product)
+    queue_security_event(
+        db,
+        user_id=user.id,
+        action="product_created",
+        request=request,
+        details=describe_activity("product", product_in.name, "created"),
+    )
     db.commit()
     db.refresh(new_product)
 
@@ -75,6 +84,7 @@ async def get_all_products(project_id: int, db=Depends(get_db), user=Depends(get
     products = db.execute(
         select(ProjectProduct)
         .where(ProjectProduct.project_id == project_id)
+        .where(ProjectProduct.is_active == True)
         .order_by(ProjectProduct.is_active.desc(), ProjectProduct.id.desc())
     ).scalars().all()
 
@@ -87,6 +97,7 @@ async def get_all_published_products(project_id: int, db=Depends(get_db), user=D
     products = db.execute(
         select(ProjectProduct)
         .where(ProjectProduct.project_id == project_id)
+        .where(ProjectProduct.is_active == True)
         .where(ProjectProduct.is_published == True)
         .order_by(ProjectProduct.id.desc())
     ).scalars().all()
@@ -99,16 +110,24 @@ async def get_all_published_products(project_id: int, db=Depends(get_db), user=D
 # =========================
 
 @products_router.put("/update-product/{product_id}")
-async def update_product(product_id: int, product_in: ProductUpdate, db=Depends(get_db), user=Depends(get_current_active_user)):
+async def update_product(product_id: int, product_in: ProductUpdate, request: Request, db=Depends(get_db), user=Depends(get_current_active_user)):
     product = require_product_owner(product_id, user.id, db)
 
     update_data = {k: v for k, v in product_in.model_dump().items() if v is not None}
 
     if update_data:
+        product_name = update_data.get("name", product.name)
         db.execute(
             update(ProjectProduct)
             .where(ProjectProduct.id == product_id)
             .values(**update_data)
+        )
+        queue_security_event(
+            db,
+            user_id=user.id,
+            action="product_updated",
+            request=request,
+            details=describe_activity("product", product_name, "saved"),
         )
         db.commit()
 
@@ -122,10 +141,17 @@ async def update_product(product_id: int, product_in: ProductUpdate, db=Depends(
 # =========================
 
 @products_router.delete("/delete-product/{product_id}")
-async def delete_product(product_id: int, db=Depends(get_db), user=Depends(get_current_active_user)):
+async def delete_product(product_id: int, request: Request, db=Depends(get_db), user=Depends(get_current_active_user)):
     product = require_product_owner(product_id, user.id, db)
 
     product.is_active = False
+    queue_security_event(
+        db,
+        user_id=user.id,
+        action="product_deleted",
+        request=request,
+        details=describe_activity("product", product.name, "deleted"),
+    )
     db.commit()
     await ensure_ecommerce_page(product.project_id, db)
 
@@ -133,19 +159,31 @@ async def delete_product(product_id: int, db=Depends(get_db), user=Depends(get_c
 
 
 # =========================
-# TOGGLE ACTIVE
+# TOGGLE PUBLISHED
 # =========================
 
-@products_router.post("/{product_id}/toggle-active")
-async def toggle_product_active(product_id: int, payload: ToggleActive, db=Depends(get_db), user=Depends(get_current_active_user)):
+@products_router.post("/{product_id}/toggle-published")
+async def toggle_product_published(product_id: int, payload: TogglePublished, request: Request, db=Depends(get_db), user=Depends(get_current_active_user)):
     product = require_product_owner(product_id, user.id, db)
 
-    product.is_active = payload.is_active
+    product.is_published = payload.is_published
+    queue_security_event(
+        db,
+        user_id=user.id,
+        action="product_updated",
+        request=request,
+        details=describe_activity(
+            "product",
+            product.name,
+            "saved",
+            extra=f"status changed to {'published' if payload.is_published else 'unpublished'}",
+        ),
+    )
     db.commit()
 
     await ensure_ecommerce_page(product.project_id, db)
 
-    return {"status": "updated", "is_active": product.is_active}
+    return {"status": "updated", "is_published": product.is_published}
 
 
 # =========================
@@ -155,6 +193,7 @@ async def toggle_product_active(product_id: int, payload: ToggleActive, db=Depen
 @products_router.post("/add-product-picture")
 async def add_product_picture(
     product_id: int,
+    request: Request,
     file: UploadFile = File(...),
     alt_text: str | None = Form(default=None),
     db=Depends(get_db),
@@ -183,6 +222,18 @@ async def add_product_picture(
     product.product_image = metadata.id
     if alt_text is not None:
         product.alt_text = alt_text
+    queue_security_event(
+        db,
+        user_id=user.id,
+        action="product_updated",
+        request=request,
+        details=describe_activity(
+            "product",
+            product.name,
+            "saved",
+            extra="image uploaded",
+        ),
+    )
     db.commit()
     await ensure_ecommerce_page(product.project_id, db)
 
@@ -256,7 +307,8 @@ async def ensure_ecommerce_page(project_id: int, db):
     products = db.execute(
         select(ProjectProduct).where(
             ProjectProduct.project_id == project_id,
-            ProjectProduct.is_active == True
+            ProjectProduct.is_active == True,
+            ProjectProduct.is_published == True
         )
     ).scalars().all()
 

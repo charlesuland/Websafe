@@ -1,4 +1,14 @@
-# crud.py or utils.py
+import re
+
+def slugify(text: str) -> str:
+    text = text.lower().strip()
+    text = re.sub(r'[^\w\s-]', '', text)
+    text = re.sub(r'[\s_]+', '-', text)
+    text = re.sub(r'-+', '-', text)
+    text = text.strip("-")  
+    return text# crud.py or utils.py
+
+
 from sqlalchemy.orm import Session
 from app.models import Subscription
 

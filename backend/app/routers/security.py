@@ -8,7 +8,7 @@ from app.dependencies import get_db, get_current_user
 from app import models
 
 
-router = APIRouter(prefix="/api/security", tags=["security"])
+router = APIRouter(prefix="/security", tags=["security"])
 
 
 class SecurityLogOut(BaseModel):

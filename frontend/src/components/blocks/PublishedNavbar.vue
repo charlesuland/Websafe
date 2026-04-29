@@ -1,6 +1,7 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { computed } from 'vue'
+import { hexToRgb } from '@/utils/colorUtils.js'
 
 const props = defineProps({
   links: {
@@ -16,51 +17,56 @@ const props = defineProps({
     default: false
   },
   style: {
-    type: Object,
-    default: () => ({
-      fontSize: 18,
-      textAlign: "center",
-      backgroundColor: "#ffffff",
-      backgroundOpacity: 1,
-      color: "#000000"
-    })
+    fontSize: 18,
+    backgroundColor: "#ffffff",
+    backgroundOpacity: 1,
+    color: "#000000"
   }
 })
 
 const router = useRouter()
 
 const effectiveLinks = computed(() => {
-  const baseLinks = [...props.links]
-  if (props.hasProducts && !baseLinks.includes('Shop')) {
-    baseLinks.push('Shop')
-  }
-  return baseLinks
+  const links = props.links || []
+
+  return props.hasProducts
+    ? [...links, ...(!links.includes('Shop') ? ['Shop'] : [])]
+    : links
 })
 
 function goTo(page) {
   router.push(`/site/${props.projectId}/${page}`)
 }
+
+const navbarStyle = computed(() => {
+  const s = props.style || {}
+
+  const rgb = hexToRgb(s.backgroundColor || '#fff')
+  const opacity = s.backgroundOpacity ?? 1
+
+  return {
+    backgroundColor: `rgba(${rgb}, ${opacity})`,
+    color: s.color || '#000',
+    fontSize: (s.fontSize || 18) + 'px'
+  }
+})
 </script>
 
 <template>
   <nav
     class="published-navbar"
-    :style="{
-      backgroundColor: style.backgroundColor,
-      color: style.color,
-      opacity: style.backgroundOpacity
-    }"
+    :style="navbarStyle"
   >
     <div class="nav-container">
       <button
         v-for="link in effectiveLinks"
-        :key="link"
-        @click="goTo(link)"
+        :key="link.id"
+        @click="goTo(link.name)"
         class="nav-link"
         type="button"
-        :style="{ fontSize: style.fontSize + 'px' }"
+        :style="navbarStyle"
       >
-        {{ link }}
+        {{ link.name }}
       </button>
     </div>
   </nav>

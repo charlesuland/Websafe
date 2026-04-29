@@ -7,10 +7,10 @@ from app.dependencies import get_db, get_current_user
 from app.models import Vendor, VendorAdress, User
 from app.schemas import VendorCreate, VendorOut
 
-vendor_router = APIRouter(prefix="/vendors", tags=["Vendors"])
+vendors_router = APIRouter(prefix="/vendors", tags=["Vendors"])
 
 
-@vendor_router.post("/", response_model=VendorOut, status_code=status.HTTP_201_CREATED)
+@vendors_router.post("/", response_model=VendorOut, status_code=status.HTTP_201_CREATED)
 async def create_vendor(
     vendor_data: VendorCreate,
     db: Session = Depends(get_db),
@@ -62,7 +62,7 @@ async def create_vendor(
         raise HTTPException(status_code=500, detail="Could not create vendor")
 
 
-@vendor_router.get("/me", response_model=VendorOut)
+@vendors_router.get("/me", response_model=VendorOut)
 async def get_my_vendor(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
@@ -75,7 +75,7 @@ async def get_my_vendor(
     return vendor
 
 
-@vendor_router.patch("/me", response_model=VendorOut)
+@vendors_router.patch("/me", response_model=VendorOut)
 async def update_vendor(
     update_data: dict,  # Or a specific Update Schema
     db: Session = Depends(get_db),

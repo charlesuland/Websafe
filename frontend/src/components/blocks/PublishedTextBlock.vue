@@ -1,18 +1,17 @@
 <script setup>
+import { hexToRgb } from '@/utils/colorUtils.js'
+
 const props = defineProps({
   text: {
     type: String,
     default: ""
   },
   style: {
-    type: Object,
-    default: () => ({
-      fontSize: 18,
-      textAlign: "center",
-      backgroundColor: "#ffffff",
-      backgroundOpacity: 1,
-      color: "#000000"
-    })
+    fontSize: 18,
+    textAlign: "center",
+    backgroundColor: "#ffffff",
+    backgroundOpacity: 1,
+    color: "#000000"
   }
 })
 </script>
@@ -24,8 +23,7 @@ const props = defineProps({
       fontSize: style.fontSize + 'px',
       textAlign: style.textAlign,
       color: style.color,
-      backgroundColor: style.backgroundColor,
-      opacity: style.backgroundOpacity
+      background: `rgba(${hexToRgb(style.backgroundColor)}, ${style.backgroundOpacity})`,
     }"
   >
     {{ text }}
@@ -34,13 +32,15 @@ const props = defineProps({
 
 <style scoped>
 .published-text-block {
-  padding: 10px;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  line-height: 1.4;
-  height: 100%;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
+  align-items: stretch;
+  padding: 5px;
+  height: 100%;
+  width: 100%;
+  position: relative;
+  border-radius: 10px;
+  font-family: Arial, sans-serif;
 }
 </style>
