@@ -3,9 +3,10 @@ from app.dependencies import get_db
 from app.models import User, Vendor
 from fastapi import Depends
 from pydantic import BaseModel, EmailStr
-from sqlmodel import select
+from sqlmodel import select, Session
 from app.auth import get_password_hash
 from app.database import SessionLocal
+from app.schemas import User as UserSchema
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -16,18 +17,21 @@ class UserIn(BaseModel):
     username: str
     email: EmailStr
     plain_password: str
-    first_name: str
-    last_name: str
-    phone: str
-
-@router.get("/")
-async def read_user():
-    return [{"username": "charlie"}]
+    first_name: str = ""
+    last_name: str = ""
+    phone: str = ""
 
 
-@router.get("/{user_id}")
-async def get_user(user_id: int):
-    return [{"user": f"user1 + {user_id}"}]
+
+@router.get("/{user_id}", response_model=UserSchema)
+async def get_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.execute(select(User).where(User.id == user_id)).scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    return user
 
 
 @router.post("/add-user")
@@ -111,7 +115,7 @@ def create_test_user():
             first_name="Jared",
             last_name="Sandfoss",
             phone="8599409574",
-            stripe_customer_id="test"
+
         )
 
     if not existingUser:
@@ -124,7 +128,7 @@ def create_test_user():
             email="email",
             owner=1,
             phone=user.phone,
-            stripe_connect_id="hello",
+            stripe_connect_id=None,
             payouts_enabled=False,
             requirements_due_for_payment="hello"
         )

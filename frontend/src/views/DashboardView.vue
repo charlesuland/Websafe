@@ -6,6 +6,8 @@ import {
   apiCreateProject,
   apiDeleteProject
 } from '@/DatabaseFunctions.js'
+import SubscriptionCard from '@/components/SubscriptionCard.vue'
+import CreateConnectCard from '@/components/CreateConnectCard.vue'
 
 const projects = ref([])
 const router = useRouter()
@@ -54,6 +56,8 @@ async function openProject(project_id) {
 </script>
 
 <template>
+  <SubscriptionCard planId="price_1TNd3WEzUozMKyEeWNvGM1g1"/>
+  <CreateConnectCard />
   <div class="dashboard">
 
     <header class="topbar">

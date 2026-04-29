@@ -4,6 +4,7 @@ from fastapi import HTTPException, Depends, APIRouter, status
 from app.dependencies import get_db
 from typing import Annotated
 from sqlalchemy.orm import Session
+from sqlmodel import select
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
@@ -45,14 +46,12 @@ async def login_for_access_token(
     db: Annotated[Session, Depends(get_db)],
 ):
     # Support login by either username or email
-    user = (
-        db.query(models.User)
-        .filter(
+    user = db.execute(
+        select(models.User).where(
             (models.User.username == form_data.username) |
             (models.User.email == form_data.username)
         )
-        .first()
-    )
+    ).scalar_one_or_none()
  
     # Always return a generic 401 regardless of whether the
     # username or password was wrong. 

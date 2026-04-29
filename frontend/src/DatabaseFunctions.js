@@ -134,6 +134,21 @@ async function apiDeleteProduct(productId) {
     return await res.json()
 }
 
+/**
+ * Check if the current user's vendor account has Stripe payments enabled (payouts_enabled)
+ * @returns {Promise<boolean>} true if enabled, false otherwise
+ */
+export async function apiVendorStripeEnabled() {
+  const res = await fetch('/api/vendors/me', {
+    method: 'GET',
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const vendor = await res.json();
+  return !!vendor.payouts_enabled;
+}
 
 export {
     apiFetchProjects,

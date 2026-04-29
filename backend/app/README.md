@@ -8,3 +8,7 @@ FastAPI backend for WebSafe.
 - Uses JWT auth and CORS for frontend integration
 
 Run from the backend folder with `uvicorn app.main:app --reload`.
+
+Stripe change notes.
+Changing the schema to fit the new stripe models.
+Subscriptions will made and handled through stripe

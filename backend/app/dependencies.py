@@ -7,6 +7,7 @@ from fastapi import HTTPException, status, Depends
 from pydantic import BaseModel
 from app import models
 from sqlalchemy.orm import Session
+from sqlmodel import select
 from app.schemas import User, TokenData
 import boto3
 
@@ -51,11 +52,7 @@ async def get_current_user(
         token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user = (
-        db.query(models.User)
-        .filter(models.User.username == token_data.username)
-        .first()
-    )
+    user = db.execute(select(models.User).where(models.User.username == token_data.username)).scalar_one_or_none()
     if user is None:
         raise credentials_exception
     return user

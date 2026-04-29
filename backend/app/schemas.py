@@ -67,7 +67,15 @@ class CustomerBase(BaseModel):
 
 
 class CustomerCreate(CustomerBase):
-    pass
+    first_name: str
+    last_name: str
+    phone: str
+    email: EmailStr
+    house_number: int
+    street_name: str
+    city: str
+    state: str
+    postal_code: int
 
 
 # --- Order Item Schemas ---
