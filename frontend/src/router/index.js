@@ -52,7 +52,7 @@ const routes = [
         component: SecurityDashboard
       },
       {
-        path:'settings',
+        path:'settings/:projectId',
         component: SettingsView
       },
     ]

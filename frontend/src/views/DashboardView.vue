@@ -52,12 +52,8 @@ async function openProject(project_id) {
   router.push(`/editor/${project_id}`)
 }
 
-async function viewPublishedSite(project_id) {
-  console.log("Viewing published site for project:", project_id, typeof project_id)
-  // Navigate to the published Home page
-  const projectIdStr = String(project_id)
-  console.log("Navigating to:", `/site/${projectIdStr}/Home`)
-  router.push(`/site/${projectIdStr}/Home`)
+function viewPublishedSite(project) {
+  window.open(`/site/${project.slug}/Home`, '_blank')
 }
 </script>
 
@@ -110,7 +106,7 @@ async function viewPublishedSite(project_id) {
 
         <div class="card-actions">
           <button @click="openProject(project.id)">Edit</button>
-          <button v-if="project.is_live" @click="viewPublishedSite(project.id)" class="view-site">View Site</button>
+          <button v-if="project.is_live && project.slug" @click="viewPublishedSite(project)" class="view-site">View Site</button>
           <button class="delete" @click="deleteProject(project.id, project.name)">Delete</button>
         </div>
       </div>

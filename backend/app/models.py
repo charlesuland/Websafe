@@ -103,6 +103,7 @@ class Project(Base):
     is_live: Mapped[bool] = mapped_column(default=False)
     last_published: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     preview_image: Mapped[int] = mapped_column(ForeignKey("media_object_metadata.id"), nullable=True)
+    slug: Mapped[Optional[str]] = mapped_column(unique=True, index=True, nullable=True)
 
     preview = relationship(
         "MediaObjectMetadata",

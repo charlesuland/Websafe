@@ -146,6 +146,33 @@ async function apiFetchSecurityActivity(action = null) {
 }
 
 
+
+
+export async function getProjectSlug(projectId) {
+  const res = await fetch(`/api/projects/${projectId}/slug`, {
+    headers: { ...getAuthHeaders() }
+  })
+  if (!res.ok) throw new Error('Failed to fetch slug')
+  return res.json()
+}
+
+export async function setProjectSlug(projectId, slug) {
+  const res = await fetch(`/api/projects/${projectId}/slug`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders()
+    },
+    body: JSON.stringify({ slug })
+  })
+
+  if (res.status === 409) throw new Error('That URL is already taken — try another name')
+  if (res.status === 400) throw new Error('Invalid slug — use letters, numbers, and hyphens only')
+  if (!res.ok) throw new Error('Failed to save slug')
+
+  return res.json()
+}
+
 export {
     // Project APIs
     apiFetchProjects,
