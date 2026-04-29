@@ -22,16 +22,24 @@ function onDrop(event) {
 </template>
 
 <style scoped>
-    .trash-zone {
-        width: 150px;
-        height: 80px;
-        background: #ff4d4d;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        font-weight: bold;
-        box-shadow: 0 6px 18px rgba(0,0,0,.3);
-    }
+.trash-zone {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 50;
+
+  width: 150px;
+  height: 80px;
+  background: #dc2626;
+  color: #ffffff;
+
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+
+  font-weight: bold;
+  box-shadow: 0 6px 18px rgba(0,0,0,.4);
+}
 </style>

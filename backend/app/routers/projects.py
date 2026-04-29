@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Request
 from fastapi.responses import StreamingResponse
 from app.dependencies import get_db, get_current_user, get_s3_client, s3_base_url, upload_image_to_s3
+from app.activity_log import queue_security_event, describe_activity
 from app.models import (
     Project,
     ProjectPage,
@@ -111,8 +112,9 @@ async def get_projects(db=Depends(get_db), user=Depends(get_current_user)):
 
     return projects_data
 
+
 @projects_router.post("/create")
-async def create_project(projectIn: ProjectIn, db=Depends(get_db), user=Depends(get_current_user)):
+async def create_project(projectIn: ProjectIn, request: Request, db=Depends(get_db), user=Depends(get_current_user)):
     project_name = projectIn.name
 
     vendor = db.execute(
@@ -135,6 +137,13 @@ async def create_project(projectIn: ProjectIn, db=Depends(get_db), user=Depends(
     draft_page = DraftProjectPage(project=project.id, name="Home", layout=[])
 
     db.add(draft_page)
+    queue_security_event(
+        db,
+        user_id=user.id,
+        action="project_created",
+        request=request,
+        details=describe_activity("project", project.name, "created"),
+    )
     db.commit()
 
     return {
@@ -145,7 +154,7 @@ async def create_project(projectIn: ProjectIn, db=Depends(get_db), user=Depends(
     }
 
 @projects_router.delete("/{project_id}/delete")
-async def delete_project(project_id: int, db=Depends(get_db), user=Depends(get_current_user)):
+async def delete_project(project_id: int, request: Request, db=Depends(get_db), user=Depends(get_current_user)):
     project = db.get(Project, project_id)
 
     if not project:
@@ -155,13 +164,20 @@ async def delete_project(project_id: int, db=Depends(get_db), user=Depends(get_c
 
     if vendor.owner != user.id:
         raise HTTPException(403)
-    
+    project_name = project.name
 
     db.execute(DraftProjectPage.__table__.delete().where(DraftProjectPage.project == project_id))
     db.execute(ProjectPage.__table__.delete().where(ProjectPage.project_id == project_id))
     db.execute(ProjectProduct.__table__.delete().where(ProjectProduct.project_id == project_id))
 
     db.delete(project)
+    queue_security_event(
+        db,
+        user_id=user.id,
+        action="project_deleted",
+        request=request,
+        details=describe_activity("project", project_name, "deleted"),
+    )
     db.commit()
 
     return {"status": "deleted"}
@@ -225,7 +241,7 @@ async def get_draft_pages(project_id: int, db=Depends(get_db), user=Depends(get_
 
 
 @projects_router.post("/{project_id}/publish")
-async def publish_project(project_id: int, db=Depends(get_db), user=Depends(get_current_user)):
+async def publish_project(project_id: int, request: Request, db=Depends(get_db), user=Depends(get_current_user)):
     project = db.get(Project, project_id)
 
     if not project:
@@ -265,6 +281,13 @@ async def publish_project(project_id: int, db=Depends(get_db), user=Depends(get_
 
     project.is_live = True
     project.last_published = datetime.utcnow()
+    queue_security_event(
+        db,
+        user_id=user.id,
+        action="project_published",
+        request=request,
+        details=describe_activity("project", project.name, "published"),
+    )
 
     db.commit()
 
@@ -275,6 +298,7 @@ async def publish_project(project_id: int, db=Depends(get_db), user=Depends(get_
 async def save_draft_pages(
     project_id: int,
     data: DraftSaveRequest,
+    request: Request,
     db=Depends(get_db),
     user=Depends(get_current_user),
     s3=Depends(get_s3_client)
@@ -341,6 +365,18 @@ async def save_draft_pages(
             raise HTTPException(400, f"Invalid preview image: {str(e)}")
     
     project.last_updated = datetime.utcnow()
+    queue_security_event(
+        db,
+        user_id=user.id,
+        action="project_saved",
+        request=request,
+        details=describe_activity(
+            "project",
+            project.name,
+            "saved",
+            extra=f"{len(data.pages)} page(s) updated",
+        ),
+    )
 
     db.commit()
 
@@ -368,6 +404,7 @@ async def proxy_project_media(file_key: str, s3=Depends(get_s3_client)):
 @projects_router.post("/{project_id}/upload-image")
 async def upload_project_image(
     project_id: int,
+    request: Request,
     file: UploadFile = File(...),
     alt_text: Optional[str] = Form(None),
     db=Depends(get_db),
@@ -397,6 +434,18 @@ async def upload_project_image(
         alt_text=alt_text,
     )
     db.add(metadata)
+    queue_security_event(
+        db,
+        user_id=user.id,
+        action="project_saved",
+        request=request,
+        details=describe_activity(
+            "project",
+            project.name,
+            "saved",
+            extra=f"image uploaded ({filename})",
+        ),
+    )
     db.commit()
 
     return {"url": build_media_proxy_url(file_key)}

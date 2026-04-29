@@ -1,8 +1,11 @@
+```vue
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { logoutSession } from '@/auth.js'
 
 const router = useRouter()
+const route = useRoute()
 
 const activeTab = ref('projects')
 
@@ -22,63 +25,70 @@ function navigateTo(tab) {
   }
 }
 
-// Set active tab based on current route
-import { onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-
-const route = useRoute()
-
 onMounted(() => {
   const path = route.path
-  if (path === '/dashboard')          activeTab.value = 'projects'
-  else if (path === '/dashboard/products')  activeTab.value = 'products'
-  else if (path === '/dashboard/security')  activeTab.value = 'security'
-  else if (path === '/dashboard/settings')  activeTab.value = 'settings'
+
+  if (path === '/dashboard')
+    activeTab.value = 'projects'
+  else if (path === '/dashboard/products')
+    activeTab.value = 'products'
+  else if (path === '/dashboard/security')
+    activeTab.value = 'security'
+  else if (path === '/dashboard/settings')
+    activeTab.value = 'settings'
 })
 
-
-// Logs user out of account, deleted token
-function logout() {
-  localStorage.removeItem('token');
+async function logout() {
+  await logoutSession()
   router.push('/')
 }
 </script>
 
 <template>
   <div class="dashboard-layout">
-    <header class="topbar">
+    
+    <!-- Skip Link -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <header class="topbar" role="banner">
       <h1>WebSafe</h1>
-      <div class = "user">
-        <button class = "logout-btn" @click="logout">Log Out</button>
+      <div class="user">
+        <button class="logout-btn" @click="logout" aria-label="Log out of account">
+          Log Out
+        </button>
       </div>
     </header>
 
     <div class="body">
-      <aside class="sidebar">
+      <aside class="sidebar" role="navigation">
         <button
           :class="{ active: activeTab === 'projects' }"
           @click="navigateTo('projects')"
         >
           Projects
         </button>
+
         <button
           :class="{ active: activeTab === 'analytics' }"
           @click="navigateTo('analytics')"
         >
           Analytics
         </button>
+
         <button
           :class="{ active: activeTab === 'settings' }"
           @click="navigateTo('settings')"
         >
           Settings
         </button>
+
         <button
           :class="{ active: activeTab === 'products' }"
           @click="navigateTo('products')"
         >
           E-Commerce Products
         </button>
+
         <button
           :class="{ active: activeTab === 'security' }"
           @click="navigateTo('security')"
@@ -87,7 +97,7 @@ function logout() {
         </button>
       </aside>
 
-      <main class="content">
+      <main id="main-content" class="content" role="main" tabindex="-1">
         <router-view />
       </main>
     </div>
@@ -101,14 +111,30 @@ function logout() {
   height: 100vh;
 }
 
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 10px;
+  background: #ffffff;
+  color: #000000;
+  padding: 8px 12px;
+  z-index: 1000;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 10px;
+}
+
 .topbar {
-  height: 60px;
-  background: #111;
-  color: white;
+  height: 80px;
+  background: #0b0b0b;
+  color: #EAEAEA;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 10px 30px;
 }
 
 .body {
@@ -118,7 +144,7 @@ function logout() {
 
 .sidebar {
   width: 220px;
-  background: #1e1e1e;
+  background: #001a3d;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -127,36 +153,42 @@ function logout() {
 
 .sidebar button {
   background: transparent;
-  color: white;
+  color: #E0E0E0;
   border: none;
   text-align: left;
-  padding: 10px;
+  padding: 12px;
   cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 .sidebar button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
 }
 
 .sidebar button.active {
-  background: rgb(90, 140, 255);
-  color: white;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.sidebar button:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
 }
 
 .content {
   flex: 1;
-  background: #f5f5f5;
+  background-color: #0a0a0a;
+  color: #EAEAEA;
   overflow-y: auto;
 }
 
-
-/* Logout Styling */
 .logout-btn {
   background: transparent;
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #EAEAEA;
+  border: 1px solid rgba(255, 255, 255, 0.6);
   padding: 8px 16px;
   border-radius: 8px;
   cursor: pointer;
@@ -165,7 +197,17 @@ function logout() {
 }
 
 .logout-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: #ffffff;
+}
+
+.logout-btn:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+button:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
 }
 </style>

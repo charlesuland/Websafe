@@ -71,10 +71,9 @@ const props = defineProps({
   box-shadow: 0 10px 18px rgba(0, 0, 0, 0.08);
 }
 
-/* IMAGE */
 .product-image-container {
   width: 100%;
-  aspect-ratio: 1 / 1; /* 🔥 keeps images perfectly square */
+  aspect-ratio: 1 / 1;
   background-color: #f5f5f5;
   overflow: hidden;
 }
@@ -96,7 +95,6 @@ const props = defineProps({
   font-size: 0.85rem;
 }
 
-/* CONTENT */
 .product-info {
   padding: 14px;
   display: flex;
@@ -105,33 +103,28 @@ const props = defineProps({
   flex: 1;
 }
 
-/* TITLE */
 .product-info h3 {
   font-size: 0.95rem;
   font-weight: 600;
   color: #222;
   margin: 0;
 
-  /* truncate nicely */
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-/* DESCRIPTION */
 .description {
   font-size: 0.85rem;
   color: #666;
 
-  /* 🔥 multi-line truncation */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-/* FOOTER */
 .product-footer {
   display: flex;
   justify-content: space-between;
@@ -139,14 +132,12 @@ const props = defineProps({
   margin-top: auto;
 }
 
-/* PRICE */
 .price {
   font-size: 1rem;
   font-weight: 600;
   color: #2563eb;
 }
 
-/* STOCK */
 .stock-status {
   font-size: 0.7rem;
   font-weight: 600;

@@ -10,10 +10,10 @@ from app.dependencies import get_db, get_current_user
 from app.models import ProjectOrder, ProjectCustomer, ProjectOrderItem, Project, Vendor
 from app.schemas import OrderOut, OrderCreate, User
 
-order_router = APIRouter(prefix="/orders", tags=["Orders"])
+orders_router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
-@order_router.get("/{order_id}", response_model=OrderOut)
+@orders_router.get("/{order_id}", response_model=OrderOut)
 async def get_order(
     order_id: int,
     db: Session = Depends(get_db),
@@ -44,7 +44,7 @@ async def get_order(
     return result
 
 
-@order_router.get("/project/{project_id}", response_model=List[OrderOut])
+@orders_router.get("/project/{project_id}", response_model=List[OrderOut])
 async def get_project_orders(
     project_id: int,
     db: Session = Depends(get_db),
@@ -60,7 +60,7 @@ async def get_project_orders(
     return db.execute(stmt).scalars().all()
 
 
-@order_router.post("/make-order", status_code=status.HTTP_201_CREATED)
+@orders_router.post("/make-order", status_code=status.HTTP_201_CREATED)
 async def make_order(order_data: OrderCreate, db: Session = Depends(get_db)):
     """
     Public endpoint. Anyone can place an order.

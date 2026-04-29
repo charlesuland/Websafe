@@ -9,7 +9,7 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
 import html2canvas from 'html2canvas'
-import { getAuthHeaders } from '@/auth'
+import { apiFetch } from '@/auth'
 
 const route = useRoute()
 const projectId = route.params.projectId
@@ -21,11 +21,10 @@ const router = useRouter()
 const store = useBuilderStore()
 
 onMounted(async () => {
-  const res = await fetch(`/api/projects/${projectId}/get-draft-pages`, {
+  const res = await apiFetch(`/api/projects/${projectId}/get-draft-pages`, {
     method: 'GET',
     headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeaders()
+      'Content-Type': 'application/json'
     },
   })
   const pages = await res.json()
@@ -44,11 +43,10 @@ async function saveDraft({ showStatus = true } = {}) {
 
   const previewImage = await captureCanvas()
 
-  const res = await fetch(`/api/projects/${projectId}/save-draft`, {
+  const res = await apiFetch(`/api/projects/${projectId}/save-draft`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeaders()
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       pages: store.pages,
@@ -92,11 +90,8 @@ async function publishLayout() {
     return
   }
 
-  const res = await fetch(`/api/projects/${projectId}/publish`, {
-    method: 'POST',
-    headers: {
-      ...getAuthHeaders()
-    }
+  const res = await apiFetch(`/api/projects/${projectId}/publish`, {
+    method: 'POST'
   })
 
   if (!res.ok) {
@@ -219,141 +214,112 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-  .editor-layout {
-    display: grid;
-    grid-template-columns: 260px 1fr;
-    grid-template-rows: 60px 70px 1fr;
+.editor-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  grid-template-rows: 60px 70px 1fr;
 
-    grid-template-areas:
-      "topbar topbar"
-      "toolbar toolbar"
-      "sidebar canvas";
+  grid-template-areas:
+    "topbar topbar"
+    "toolbar toolbar"
+    "sidebar canvas";
 
-    height: 100vh;
-    width: 100vw;
-  }
+  height: 100vh;
+  width: 100vw;
+}
 
-  .topbar {
-    grid-area: topbar;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+.topbar {
+  grid-area: topbar;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 
-    padding: 0 16px;
-    background: #ffffff;
-    border-bottom: 1px solid #e5e5e5;
-    z-index: 10;
-  }
+  padding: 0 16px;
+  background: #111827;
+  color: #f9fafb;
+}
 
-  .topbar .left,
-  .topbar .center,
-  .topbar .right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+.toolbar {
+  grid-area: toolbar;
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
 
-  .toolbar {
-    grid-area: toolbar;
-    display: flex;
-    align-items: center;
-    justify-content: space-evenly;
-    height: 80px;
+  background-color: #1f2937;
+}
 
-    padding: 16px 16px;
-    background-color: #cecece;
-    z-index: 10;
-  }
+.sidebar {
+  grid-area: sidebar;
+  background: #111827;
+  padding: 10px;
+  overflow-y: auto;
+}
 
-  .sidebar {
-    grid-area: sidebar;
-    background: #c2c2c2;
-    color: white;
-    padding: 10px;
-    overflow-y: auto;
-  }
+.canvas-area {
+  grid-area: canvas;
+  background: #0f172a;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
 
-  .canvas-area {
-    grid-area: canvas;
-    background: #f5f5f5;
-    overflow: auto;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 20px;
-  }
+.canvas-wrapper {
+  width: 100%;
+  max-width: 1100px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+}
 
-  .canvas-wrapper {
-    width: 100%;
-    max-width: 1100px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    overflow: hidden;
-  }
+button {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin: 5px;
+  cursor: pointer;
+  font-weight: 500;
+}
 
-  .trash {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    z-index: 20;
-  }
+.primary {
+  background: #2563eb;
+  color: #ffffff;
+}
 
-  button {
-    border: none;
-    border-radius: 8px;
-    padding: 8px 14px;
-    cursor: pointer;
-  }
+.primary:hover {
+  background: #1d4ed8;
+}
 
-  .primary {
-    background: #2f7df6;
-    color: white;
-  }
+.secondary {
+  background: #374151;
+  color: #f9fafb;
+}
 
-  .secondary {
-    background: #eee;
-  }
+.secondary:hover {
+  background: #4b5563;
+}
 
-  .back-button {
-    font-weight: 500;
-  }
+button:focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 2px;
+}
 
-  .save-icon {
-    position: fixed;
-    right: 30px;
-    bottom: 30px;
+.save-icon {
+  position: fixed;
+  right: 30px;
+  bottom: 30px;
 
-    background-color: #2f7df6;
-    color: white;
+  background-color: #2563eb;
+  color: white;
+  
+  padding: 10px 16px;
+  border-radius: 999px;
+}
 
-    z-index: 20;
-    padding: 10px 16px;
-    border-radius: 999px;
+.saved {
+  background: #16a34a;
+}
 
-    font-size: 14px;
-    font-weight: 500;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-
-    animation: fadeIn 0.2s ease
-  }
-
-  .saved {
-    background: rgba(40, 167, 69, 0.9);
-  }
-
-  .published {
-    background: rgba(16, 185, 129, 0.95);
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
+.published {
+  background: #059669;
+}
 </style>

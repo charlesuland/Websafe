@@ -18,9 +18,6 @@ import HowItWorksSection from "@/components/HowItWorksSection.vue";
 import PricingSection from "@/components/PricingSection.vue";
 import Footer from "../components/Footer.vue"
 
-
-
-
 </script>
 
 <style>

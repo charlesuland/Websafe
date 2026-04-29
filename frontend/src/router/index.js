@@ -12,6 +12,7 @@ import SecurityDashboard from '@/views/SecurityDashboard.vue'
 import AboutUsView from '@/views/AboutUsView.vue'
 
 import SettingsView from '@/views/SettingsView.vue'
+import { ensureAuthenticated } from '@/auth.js'
 
 const routes = [
   {
@@ -71,23 +72,12 @@ const router = createRouter({
 
 
 // client side navigation guard
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
-  const token = localStorage.getItem('token')
 
   if (requiresAuth) {
-    if (!token) return '/login'
-
-    // Check expiry without a library
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]))
-      if (payload.exp * 1000 < Date.now()) {
-        localStorage.removeItem('token')
-        return '/login'
-      }
-    } catch {
-      // Malformed token
-      localStorage.removeItem('token')
+    const authenticated = await ensureAuthenticated()
+    if (!authenticated) {
       return '/login'
     }
   }

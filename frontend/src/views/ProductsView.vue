@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getAuthHeaders } from '@/auth.js'
+import { apiFetch } from '@/auth.js'
 import { 
   apiFetchAllProducts,
   apiCreateProduct,
@@ -43,10 +43,12 @@ function getPayload(source) {
     project_id: source.project_id,
     name: source.name,
     description: source.description,
-    sale_price: parseInt(source.sale_price) || 0,
-    shipping_price: parseInt(source.shipping_price) || 0,
+
+    sale_price: Math.max(0, Math.round((source.sale_price || 0) * 100)),
+    shipping_price: Math.max(0, Math.round((source.shipping_price || 0) * 100)),
+
     alt_text: source.alt_text,
-    stock: parseInt(source.stock) || 0
+    stock: Math.max(0, parseInt(source.stock) || 0)
   }
 }
 
@@ -66,11 +68,37 @@ function openCreate(project) {
 }
 
 function openEdit(product, project) {
-  editingProduct.value = { ...product, project_id: project.id }
+  editingProduct.value = { 
+    ...product, 
+    project_id: project.id,
+    sale_price: (product.sale_price || 0) / 100,
+    shipping_price: (product.shipping_price || 0) / 100,
+    stock: Math.max(0, product.stock || 0)
+  }
+
   selectedFile.value = null
   currentImagePreview.value = product.image_url || null
   showEditMenu.value = true
 }
+
+
+function clampPrice(field) {
+  if (editingProduct.value[field] < 0) {
+    editingProduct.value[field] = 0
+  } else {
+    // Round to 2 decimal places
+    editingProduct.value[field] = Math.round(editingProduct.value[field] * 100) / 100
+  }
+}
+
+function clampStock() {
+  if (editingProduct.value.stock < 0) {
+    editingProduct.value.stock = 0
+  } else {
+    editingProduct.value.stock = Math.floor(editingProduct.value.stock)
+  }
+}
+
 
 async function saveProduct() {
   try {
@@ -132,9 +160,9 @@ async function saveProduct() {
 async function toggleActive(product) {
   const newStatus = !product.is_active
 
-  await fetch(`/api/products/${product.id}/toggle-active`, {
+  await apiFetch(`/api/products/${product.id}/toggle-active`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ is_active: newStatus })
   })
 
@@ -171,19 +199,35 @@ function handleFileSelect(e) {
 </script>
 
 <template>
-  <div class="products-content">
-    <div class="content-header">
-      <h2>Products</h2>
-    </div>
+  <main class="products-content" aria-labelledby="products-title">
+    <header class="content-header">
+      <div>
+        <h2 id="products-title">Products</h2>
+        <p class="intro-text">Manage product catalogs, stock, pricing, and images for each project.</p>
+      </div>
+    </header>
 
-    <div v-if="loading">Loading...</div>
+    <div v-if="loading" class="loading-state" role="status" aria-live="polite">Loading products…</div>
 
+    <section
+      v-for="p in projectsWithProducts"
+      :key="p.project.id"
+      class="project-section"
+      :aria-labelledby="`project-products-${p.project.id}`"
+    >
+      <div class="project-section-header">
+        <div>
+          <h3 :id="`project-products-${p.project.id}`" class="project-section-title">{{ p.project.name }}</h3>
+          <p class="project-section-sub">Product management for this storefront.</p>
+        </div>
+        <button class="primary" type="button" @click="openCreate(p.project)">Create Product</button>
+      </div>
 
-    <div v-for="p in projectsWithProducts" :key="p.project.id">
-      <h2>{{ p.project.name }}</h2>
-      <button class="primary" @click="openCreate(p.project)">+ New Product</button>
+      <div v-if="p.products.length === 0" class="empty-products" role="status">
+        No products yet for this project.
+      </div>
 
-      <div class="grid">
+      <div v-else class="grid" :aria-label="`${p.project.name} products`">
         <ProductCard
           v-for="product in p.products"
           :key="product.id"
@@ -194,130 +238,178 @@ function handleFileSelect(e) {
           @toggle-active="() => toggleActive(product)"
         />
       </div>
-    </div>
+    </section>
 
-    <div v-if="showEditMenu" class="edit-menu">
-      <div class="edit-menu-content">
-        <h3>{{ editingProduct.id ? 'Edit Product' : 'New Product' }}</h3>
 
-        <h4 class="edit-menu-field-header">Name</h4>
-        <input v-model="editingProduct.name" placeholder="Name" />
+    <!-- Edit/Create Product Modal -->
+    <div v-if="showEditMenu" class="edit-menu" role="presentation">
+      <div
+        class="edit-menu-content"
+        role="dialog"
+        aria-modal="true"
+        :aria-labelledby="editingProduct.id ? 'edit-product-title' : 'new-product-title'"
+      >
+        <h3 :id="editingProduct.id ? 'edit-product-title' : 'new-product-title'">
+          {{ editingProduct.id ? 'Edit Product' : 'New Product' }}
+        </h3>
 
-        <h4 class="edit-menu-field-header">Description</h4>
-        <textarea v-model="editingProduct.description" placeholder="Description"></textarea>
+        <label class="field-group">
+          <span class="edit-menu-field-header">Product Name</span>
+          <input v-model="editingProduct.name" placeholder="Name" />
+        </label>
 
-        <h4 class="edit-menu-field-header">Sale Price</h4>
-        <input
-          type="number"
-          v-model="editingProduct.sale_price"
-          placeholder="Price (cents)"
-        />
+        <label class="field-group">
+          <span class="edit-menu-field-header">Product Description</span>
+          <textarea v-model="editingProduct.description" placeholder="Description"></textarea>
+        </label>
 
-        <h4 class="edit-menu-field-header">Shipping Price</h4>
-        <input
-          type="number"
-          v-model="editingProduct.shipping_price"
-          placeholder="Shipping Price (cents)"
-        />
+        <label class="field-group">
+          <span class="edit-menu-field-header">Sale Price ($)</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            v-model.number="editingProduct.sale_price"
+            @input="clampPrice('sale_price')"
+            placeholder="Price ($)"
+          />
+        </label>
 
-        <h4 class="edit-menu-field-header">Stock Available</h4>
-        <input
-          type="number"
-          v-model="editingProduct.stock"
-          placeholder="Stock"
-        />
+        <label class="field-group">
+          <span class="edit-menu-field-header">Shipping Price ($)</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            v-model.number="editingProduct.shipping_price"
+            @input="clampPrice('shipping_price')"
+            placeholder="Shipping Price ($)"
+          />
+        </label>
 
-        <div 
+        <label class="field-group">
+          <span class="edit-menu-field-header">Stock Available</span>
+          <input
+            type="number"
+            min="0"
+            step="1"
+            v-model.number="editingProduct.stock"
+            @input="clampStock('stock')"
+            placeholder="Stock"
+          />
+        </label>
+
+        <button
+          type="button"
           class="drop-zone"
           @dragover.prevent
           @click="$refs.fileInput.click()"
           @drop.prevent="handleDrop"
         >
-          <p v-if="!currentImagePreview">Drag & drop image here or click to upload</p>
-          <img 
-            v-if="currentImagePreview" 
-            :src="currentImagePreview" 
+          <p v-if="!currentImagePreview">Drag and drop an image here or press to upload.</p>
+          <img
+            v-if="currentImagePreview"
+            :src="currentImagePreview"
             :alt="editingProduct.alt_text"
             class="preview-image"
           />
           <input type="file" @change="handleFileSelect" hidden ref="fileInput" />
-          
-        </div>
-        <h4 v-if="currentImagePreview" class="edit-menu-field-header">Alt Text</h4>
-          <input 
-            v-if="currentImagePreview"
+        </button>
+
+        <label v-if="currentImagePreview" class="field-group">
+          <span class="edit-menu-field-header">Alt Text</span>
+          <input
             type="text"
             v-model="editingProduct.alt_text"
             placeholder="Alt text for the image"
-
-          >
+          />
+        </label>
 
         <div class="edit-menu-actions">
-          <button @click="saveProduct">Save</button>
-          <button @click="showEditMenu = false">Cancel</button>
+          <button type="button" class="save-action" @click="saveProduct">Save</button>
+          <button type="button" class="cancel-action" @click="showEditMenu = false">Cancel</button>
         </div>
-
       </div>
     </div>
-  </div>
+  </main>
 </template>
 
 <style scoped>
-h2 {
-  color: rgb(90, 140, 255);
-}
-
 .products-content {
-  padding: 30px;
+  padding: 2rem 2.5rem 3rem;
+  color: #d8e4f2;
 }
 
 .content-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  color: rgb(90, 140, 255);
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .content-header h2 {
   margin: 0;
-  font-size: clamp(1.6rem, 2vw, 2rem);
+  font-size: clamp(1.7rem, 2vw, 2rem);
+  color: #f8fbff;
+}
+
+.intro-text {
+  margin: 0.45rem 0 0;
+  color: #b8cade;
+  font-size: 0.98rem;
 }
 
 .primary {
-  background: #2f7df6;
+  background: #1d61c6;
   color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
+  border: 1px solid #4f9bff;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 700;
   transition: background 0.2s;
   min-width: 140px;
-  margin-top: 10px;
-  margin-bottom: 10px;
 }
 
 .primary:hover {
   background: #2464d9;
 }
 
+.primary:focus-visible,
+.drop-zone:focus-visible,
+.edit-menu-actions button:focus-visible {
+  outline: 3px solid #f8c35d;
+  outline-offset: 3px;
+}
+
 .project-section {
   margin-bottom: 40px;
   padding: 22px;
-  background: #ffffff;
+  background: linear-gradient(180deg, #132031 0%, #0f1825 100%);
+  border: 1px solid #2a3d58;
   border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.22);
 }
 
-.project-section h2 {
-  margin-bottom: 16px;
-  font-size: clamp(1.4rem, 1.6vw, 1.8rem);
-  color: #222;
-}
-
-.project-section button {
+.project-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
   margin-bottom: 18px;
+}
+
+.project-section-title {
+  margin: 0;
+  font-size: clamp(1.4rem, 1.6vw, 1.8rem);
+  color: #f8fbff;
+}
+
+.project-section-sub {
+  margin: 0.45rem 0 0;
+  color: #b8cade;
+  font-size: 0.94rem;
 }
 
 .preview-image {
@@ -372,45 +464,82 @@ button {
   gap: 18px;
 }
 
+.loading-state,
+.empty-products {
+  color: #c6d4e5;
+  text-align: center;
+  padding: 1.5rem;
+}
+
 .edit-menu {
   position: fixed;
   inset: 0;
   padding: 24px;
-  background: rgba(15, 23, 42, 0.55);
+
+  background: rgba(2, 6, 23, 0.75);
+  backdrop-filter: blur(6px);
+
   display: flex;
   justify-content: center;
   align-items: center;
+
   z-index: 1000;
 }
 
 .edit-menu-content {
-  background: #ffffff;
-  padding: 24px;
+  background: linear-gradient(180deg, #132031 0%, #0f1825 100%);
+  border: 1px solid #2a3d58;
+
   border-radius: 18px;
   width: min(92vw, 560px);
-  max-height: min(90vh, 740px);
+  max-height: min(90vh, 760px);
+
+  padding: 24px;
+
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.15);
+  gap: 14px;
+
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+
   overflow-y: auto;
 }
 
 .edit-menu-content h3 {
+  margin: 0;
+
   font-size: 1.5rem;
-  margin-bottom: 0;
-  color: #111827;
+  font-weight: 700;
+
+  color: #f8fbff;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
 }
 
 .edit-menu-content input,
 .edit-menu-content textarea {
-  padding: 14px 16px;
-  border: 1px solid #d1d5db;
+  padding: 12px 14px;
+
+  border: 1px solid #2a3d58;
   border-radius: 12px;
+
   font-size: 1rem;
-  width: 100%;
-  background: #f9fafb;
-  box-sizing: border-box;
+
+  background: #0b1220;
+  color: #f8fbff;
+
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.edit-menu-content input:focus,
+.edit-menu-content textarea:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25);
 }
 
 .edit-menu-content textarea {
@@ -420,10 +549,9 @@ button {
 
 .edit-menu-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   justify-content: flex-end;
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 .edit-menu-actions button {
@@ -454,30 +582,53 @@ button {
 }
 
 .edit-menu-field-header {
-  color: #111827;
-  margin-top: 10px;
-  margin-bottom: 0.5rem;
+  color: #b8cade;
   font-weight: 600;
+  font-size: 0.9rem;
 }
 
 .drop-zone {
-  border: 2px dashed #cbd5e1;
+  border: 2px dashed #334155;
   border-radius: 14px;
+
   padding: 18px;
   min-height: 160px;
-  text-align: center;
-  cursor: pointer;
-  background: #f8fafc;
+
+  background: rgba(255, 255, 255, 0.03);
+  color: #b8cade;
+
   display: flex;
-  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  gap: 12px;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  text-align: center;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .drop-zone:hover {
-  background: #eef2ff;
-  border-color: #2563eb;
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.08);
+  color: #f8fbff;
+}
+
+.save-action {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.save-action:hover {
+  background: #15803d;
+}
+
+.cancel-action {
+  background: #1e293b;
+  color: #f8fbff;
+  border: 1px solid #334155;
+}
+
+.cancel-action:hover {
+  background: #334155;
 }
 
 @media (max-width: 800px) {
@@ -501,6 +652,7 @@ button {
 
 @media (max-width: 520px) {
   .content-header,
+  .project-section-header,
   .edit-menu-actions {
     flex-direction: column;
     align-items: stretch;

@@ -1,18 +1,25 @@
 <script setup>
-    import { useBuilderStore } from '@/stores/builderStore'
+import { useBuilderStore } from '@/stores/builderStore'
 
-    const store = useBuilderStore()
+const store = useBuilderStore()
 
-    function updateStyle(key, value) {
-        const component = store.selectedComponent
+function updateStyle(key, value) {
+    const component = store.selectedComponent
+    if (!component) return
 
-        if (!component.props.style) {
-            component.props.style = {}
-            return
-        }
-            
-        component.props.style[key] = value
+    if (!component.props) {
+        component.props = {}
     }
+
+    if (!component.props.style) {
+        component.props.style = {}
+    }
+
+    component.props.style = {
+        ...component.props.style,
+        [key]: value
+    }
+}
 </script>
 
 <template>
@@ -74,7 +81,7 @@
                 max="1"
                 step="0.01"
                 :value="store.selectedComponent.props.style.backgroundOpacity"
-                @change="updateStyle('opacity', $event.target.value)"
+                @input="updateStyle('backgroundOpacity', parseFloat($event.target.value))"
             />
         </div>
     </div>

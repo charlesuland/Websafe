@@ -2,8 +2,9 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from types import SimpleNamespace
 
-from app.models import Base, User, Vendor, Project, ProjectProduct, DraftProjectPage
+from app.models import Base, User, Vendor, Project, ProjectProduct, DraftProjectPage, SecurityLog
 from app.routers import products, projects
 from app.routers.checkout import create_checkout
 from app.schemas import CheckoutCreateRequest, CheckoutCustomer, CheckoutItem
@@ -35,6 +36,13 @@ def make_user(db_session, username: str) -> User:
     db_session.add(user)
     db_session.commit()
     return user
+
+
+def make_request():
+    return SimpleNamespace(
+        headers={"user-agent": "pytest"},
+        client=SimpleNamespace(host="127.0.0.1"),
+    )
 
 
 def make_vendor(db_session, user: User, name: str) -> Vendor:
@@ -103,6 +111,7 @@ async def test_product_routes_enforce_vendor_ownership(db_session):
                 shipping_price=10,
                 stock=1,
             ),
+            request=make_request(),
             db=db_session,
             user=intruder,
         )
@@ -116,6 +125,7 @@ async def test_product_routes_enforce_vendor_ownership(db_session):
         await products.update_product(
             product.id,
             products.ProductUpdate(name="Stolen"),
+            request=make_request(),
             db=db_session,
             user=intruder,
         )
@@ -149,7 +159,7 @@ async def test_publish_only_exposes_active_products_publicly(db_session):
     active_product = make_product(db_session, project, "Published Product", is_active=True)
     inactive_product = make_product(db_session, project, "Hidden Product", is_active=False)
 
-    await projects.publish_project(project.id, db=db_session, user=owner)
+    await projects.publish_project(project.id, request=make_request(), db=db_session, user=owner)
 
     db_session.refresh(active_product)
     db_session.refresh(inactive_product)
@@ -162,6 +172,52 @@ async def test_publish_only_exposes_active_products_publicly(db_session):
 
     assert active_product.id in public_ids
     assert inactive_product.id not in public_ids
+
+    publish_log = db_session.query(SecurityLog).filter(SecurityLog.action == "project_published").one()
+    assert "Project 'Storefront' published." == publish_log.details
+
+
+@pytest.mark.asyncio
+async def test_product_actions_are_logged_with_names(db_session):
+    owner = make_user(db_session, "logger")
+    vendor = make_vendor(db_session, owner, "LoggerShop")
+    project = make_project(db_session, vendor, "Logger Project")
+
+    created = await products.create_product(
+        products.ProductIn(
+            project_id=project.id,
+            name="Logged Product",
+            description="Tracked",
+            sale_price=1200,
+            shipping_price=100,
+            stock=2,
+        ),
+        request=make_request(),
+        db=db_session,
+        user=owner,
+    )
+
+    await products.update_product(
+        created["id"],
+        products.ProductUpdate(name="Logged Product 2"),
+        request=make_request(),
+        db=db_session,
+        user=owner,
+    )
+
+    await products.delete_product(
+        created["id"],
+        request=make_request(),
+        db=db_session,
+        user=owner,
+    )
+
+    logs = db_session.query(SecurityLog).filter(SecurityLog.user_id == owner.id).all()
+    details = [log.details for log in logs]
+
+    assert "Product 'Logged Product' created." in details
+    assert "Product 'Logged Product 2' saved." in details
+    assert "Product 'Logged Product 2' deleted." in details
 
 
 @pytest.mark.asyncio

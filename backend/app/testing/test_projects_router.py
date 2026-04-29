@@ -5,11 +5,19 @@ Mocks dependencies like get_db and get_current_user.
 import pytest
 from unittest.mock import MagicMock
 from app.routers import projects
-from app.models import Project, Vendor, DraftProjectPage, User
+from app.models import Project, Vendor, DraftProjectPage, User, SecurityLog
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.models import Base
 from fastapi import HTTPException
+from types import SimpleNamespace
+
+
+def make_request():
+    return SimpleNamespace(
+        headers={"user-agent": "pytest"},
+        client=SimpleNamespace(host="127.0.0.1"),
+    )
 
 @pytest.fixture(scope="function")
 def db_session():
@@ -71,8 +79,10 @@ async def test_create_and_get_project(db_session, test_user, test_vendor, monkey
 
     # Create project
     project_in = projects.ProjectIn(name="My Project")
-    result = await projects.create_project(project_in, db=db_session, user=test_user)
+    result = await projects.create_project(project_in, request=make_request(), db=db_session, user=test_user)
     assert result["name"] == "My Project"
+    log = db_session.query(SecurityLog).filter(SecurityLog.action == "project_created").one()
+    assert "Project 'My Project' created." == log.details
 
     # Get projects
     projects_list = await projects.get_projects(db=db_session, user=test_user)
@@ -96,6 +106,8 @@ async def test_delete_project(db_session, test_user, test_vendor, monkeypatch):
     db_session.commit()
 
     # Delete project
-    result = await projects.delete_project(pid, db=db_session, user=test_user)
+    result = await projects.delete_project(pid, request=make_request(), db=db_session, user=test_user)
     assert result["status"] == "deleted"
     assert db_session.get(Project, pid) is None
+    log = db_session.query(SecurityLog).filter(SecurityLog.action == "project_deleted").one()
+    assert "Project 'ToDelete' deleted." == log.details
