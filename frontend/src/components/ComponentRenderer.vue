@@ -22,7 +22,10 @@ const resolvedComponent = computed(() => {
 })
 
 function updateProp(key, value) {
-  props.componentData.props[key] = value
+  props.componentData.props = {
+    ...props.componentData.props,
+    [key]: value
+  }
 }
 </script>
 

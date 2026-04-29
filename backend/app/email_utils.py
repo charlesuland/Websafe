@@ -1,11 +1,10 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from app import models
-from sqlalchemy.orm import Session
+from app.models import SecurityReport
 import os
 
-def send_urgent_security_email(report: models.SecurityReport, to_email: str):
+def send_urgent_security_email(report: SecurityReport, to_email: str):
     smtp_server = os.getenv("SMTP_SERVER", "smtp.example.com")
     smtp_port = int(os.getenv("SMTP_PORT", 587))
     smtp_user = os.getenv("SMTP_USER", "user@example.com")
@@ -27,6 +26,6 @@ def send_urgent_security_email(report: models.SecurityReport, to_email: str):
         server.login(smtp_user, smtp_password)
         server.sendmail(from_email, to_email, msg.as_string())
 
-def maybe_send_urgent_report_email(db: Session, report: models.SecurityReport, to_email: str):
+def maybe_send_urgent_report_email(report: SecurityReport, to_email: str):
     if report.urgent or report.status == "fail":
         send_urgent_security_email(report, to_email)

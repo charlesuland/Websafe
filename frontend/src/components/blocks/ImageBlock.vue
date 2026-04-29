@@ -1,14 +1,16 @@
 <script setup>
 import { useRoute } from 'vue-router'
 import placeholder from '@/assets/placeholder_image.jpg'
+import { apiFetch } from '@/auth.js'
+import { hexToRgb } from '@/utils/colorUtils.js'
 
 const props = defineProps({
   src: { type: String, default: "" },
   alt: { type: String, default: "Image" },
   style: {
-    backgroundColor: "gray",
-    backgroundOpacity: 1
-  }
+      backgroundColor: "#ffffff",
+      backgroundOpacity: 1,
+    }
 })
 
 const emit = defineEmits(["update:src"])
@@ -28,12 +30,8 @@ async function handleUpload(event) {
   formData.append('file', file)
   formData.append('alt_text', props.alt)
 
-  const token = localStorage.getItem('token')
-  const res = await fetch(`/api/projects/${projectId}/upload-image`, {
+  const res = await apiFetch(`/api/projects/${projectId}/upload-image`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`
-    },
     body: formData
   })
 
@@ -49,7 +47,10 @@ async function handleUpload(event) {
 
 <template>
   <div class="image-block">
-    <div class="image-container">
+    <div class="image-container"
+      :style="{
+        backgroundColor: `rgba(${hexToRgb(style.backgroundColor)}, ${style.backgroundOpacity})`
+      }">
       <img :src="src || placeholder" :alt="alt" />
       <div class="overlay">
         <label class="upload-button">
@@ -94,7 +95,6 @@ img {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: rgba(0, 0, 0, 0.4);
   color: gray;
   opacity: 0;
   transition: opacity 0.2s ease;

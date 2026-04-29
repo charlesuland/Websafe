@@ -11,19 +11,25 @@ class User(Base):
 
     username: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
     email: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
-    phone: Mapped[str]
+    phone: Mapped[Optional[str]] = mapped_column(nullable=True)
     email_verified: Mapped[bool] = mapped_column(default=False)
     hash_password: Mapped[str] = mapped_column(nullable=False)
-    first_name: Mapped[str]
-    last_name: Mapped[str]
-    stripe_customer_id: Mapped[str]
-
-    # Added these two fields becaues they're referenced in schemes.py
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
-
-    # for security logs
+    first_name: Mapped[Optional[str]] = mapped_column(nullable=True)
+    last_name: Mapped[Optional[str]] = mapped_column(nullable=True)
+    stripe_customer_id: Mapped[Optional[str]] = mapped_column(nullable=True)
+    
     security_logs: Mapped[list["SecurityLog"]] = relationship("SecurityLog", back_populates="user", cascade="all, delete-orphan")
+
+
+class RefreshSession(Base):
+    __tablename__ = "refresh_sessions"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    jti: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
+    expires_at: Mapped[datetime]
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    user_agent: Mapped[Optional[str]] = mapped_column(nullable=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(nullable=True)
 
 
 class SubscriptionStatus(enum.Enum):
@@ -35,7 +41,7 @@ class SubscriptionStatus(enum.Enum):
 
 class Subscription(Base):
     __tablename__ = "subscriptions"
-    plan_id: Mapped[int] = mapped_column(ForeignKey("plans.id"))
+    #plan_id: Mapped[int] = mapped_column(ForeignKey("plans.id"))
     # when you are going to be searching by something, make its index true
     status: Mapped[SubscriptionStatus] = mapped_column(
         index=True, default=SubscriptionStatus.ACTIVE
@@ -43,8 +49,8 @@ class Subscription(Base):
     current_period_start: Mapped[datetime]
     current_period_end: Mapped[datetime] = mapped_column(index=True)
     canceled_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
-    trial_start: Mapped[Optional[datetime]] = mapped_column(nullable=True)
-    trial_end: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    # trial_start: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    # trial_end: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     stripe_subscription_id: Mapped[Optional[str]] = mapped_column(unique=True, nullable=True)
     meta: Mapped[dict] = mapped_column(JSON)
 
@@ -79,8 +85,7 @@ class Vendor(Base):
     email: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
     owner: Mapped[int] = mapped_column(ForeignKey("users.id"))
     phone: Mapped[str]
-    # stripe_id: Mapped[str]
-    stripe_connect_id: Mapped[str]
+    stripe_connect_id: Mapped[Optional[str]] = mapped_column(nullable=True)
     payouts_enabled: Mapped[bool] = mapped_column(default=False)
     requirements_due_for_payment: Mapped[str]
 
@@ -120,8 +125,6 @@ class ProjectPage(Base):
     layout: Mapped[dict] = mapped_column(JSON)
 
 
-
-# --- Security Log and Report Models ---
 class SecurityLog(Base):
     __tablename__ = "security_logs"
 

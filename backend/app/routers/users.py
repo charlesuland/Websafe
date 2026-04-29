@@ -3,9 +3,10 @@ from app.dependencies import get_db
 from app.models import User, Vendor
 from fastapi import Depends
 from pydantic import BaseModel, EmailStr
-from sqlmodel import select
+from sqlmodel import select, Session
 from app.auth import get_password_hash
 from app.database import SessionLocal
+from app.schemas import User as UserSchema
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -16,18 +17,21 @@ class UserIn(BaseModel):
     username: str
     email: EmailStr
     plain_password: str
-    first_name: str
-    last_name: str
-    phone: str
-
-@router.get("/")
-async def read_user():
-    return [{"username": "charlie"}]
+    first_name: str = ""
+    last_name: str = ""
+    phone: str = ""
 
 
-@router.get("/{user_id}")
-async def get_user(user_id: int):
-    return [{"user": f"user1 + {user_id}"}]
+
+@router.get("/{user_id}", response_model=UserSchema)
+async def get_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.execute(select(User).where(User.id == user_id)).scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    return user
 
 
 @router.post("/add-user")
@@ -81,3 +85,49 @@ async def register_user(user_in: UserIn, db=Depends(get_db)):
     db.commit()
     
     return {"message": "Account created successfully.", "username": new_user.username}
+'''
+Using this as a temporary test user
+
+username/email: jared
+password: jmsjms
+'''
+
+def create_test_user():
+    db = SessionLocal()
+
+    existingUser = db.execute(
+        select(User).where(User.username == "jared")
+    ).scalar_one_or_none()
+
+    existingVendor = db.execute(
+        select(Vendor).where(Vendor.business_name == "name")
+    ).scalar_one_or_none()
+
+    user = User(
+            username="jared",
+            email="jared@sandfoss.net",
+            hash_password=get_password_hash("jmsjms"),
+            first_name="Jared",
+            last_name="Sandfoss",
+            phone="8599409574",
+
+        )
+
+    if not existingUser:
+        db.add(user)
+        
+
+    if not existingVendor:
+        vendor = Vendor(
+            business_name="name",
+            email="email",
+            owner=1,
+            phone=user.phone,
+            stripe_connect_id=None,
+            payouts_enabled=False,
+            requirements_due_for_payment="hello"
+        )
+        db.add(vendor)
+
+    db.commit()
+    db.close()

@@ -13,39 +13,39 @@
         <template v-if="isRegister">
           <div class="input-row">
             <div class="input-group">
-              <label for="first-name">First Name</label>
+              <label for="first-name" class="field-label">First Name</label>
               <input id="first-name" v-model="firstName" type="text" placeholder="First name" autocomplete="given-name" required />
             </div>
             <div class="input-group">
-              <label for="last-name">Last Name</label>
+              <label for="last-name" class="field-label">Last Name</label>
               <input id="last-name" v-model="lastName" type="text" placeholder="Last name" autocomplete="family-name" required />
             </div>
           </div>
 
           <div class="input-group">
-            <label for="username">Username</label>
+            <label for="username" class="field-label">Username</label>
             <input id="username" v-model="username" type="text" placeholder="Choose a username" autocomplete="username" required />
           </div>
 
           <div class="input-group">
-            <label for="phone">Phone</label>
+            <label for="phone" class="field-label">Phone</label>
             <input id="phone" v-model="phone" type="tel" placeholder="Phone number" autocomplete="tel" required />
           </div>
         </template>
 
         <div class="input-group">
-          <label for="email">Email</label>
+          <label for="email" class="field-label">Email</label>
           <input id="email" v-model="email" type="email" placeholder="Enter your email" autocomplete="email" required />
         </div>
 
         <div class="input-group">
-          <label for="password">Password</label>
+          <label for="password" class="field-label">Password</label>
           <input id="password" v-model="password" type="password" :autocomplete="isRegister ? 'new-password' : 'current-password'" placeholder="Enter your password" required />
         </div>
 
         <!-- Confirm password only shown on register -->
         <div v-if="isRegister" class="input-group">
-          <label for="confirm-password">Confirm Password</label>
+          <label for="confirm-password" class="field-label">Confirm Password</label>
           <input id="confirm-password" v-model="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirm password" required />
         </div>
 
@@ -65,6 +65,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { apiFetch } from '@/auth.js'
 
 // defineProps return value is captured as `props` so we can reference
 // props.isRegister inside the script functions below.
@@ -110,7 +111,7 @@ async function login() {
     body.append('username', email.value)
     body.append('password', password.value)
 
-    const res = await fetch('/api/token', {
+    const res = await apiFetch('/api/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body
@@ -123,8 +124,6 @@ async function login() {
       return
     }
 
-    const data = await res.json()
-    localStorage.setItem('token', data.access_token)
     router.push('/dashboard')
   } catch (err) {
     errorMessage.value = 'Could not reach the server. Check your connection.'
@@ -145,7 +144,7 @@ async function register() {
   loading.value = true
 
   try {
-    const res = await fetch('/api/users/add-user', {
+    const res = await apiFetch('/api/users/add-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -203,6 +202,14 @@ async function register() {
 .login-card p {
   color: #666;
   margin-bottom: 25px;
+}
+
+.field-label {
+  color: #333;
+  font-size: 14px;
+  margin-bottom: 5px;
+  font-weight: 500;
+  text-align: left;
 }
 
 .error-banner {

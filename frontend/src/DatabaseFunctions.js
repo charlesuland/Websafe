@@ -1,24 +1,21 @@
-import { getAuthHeaders } from '@/auth.js'
+import { apiFetch } from '@/auth.js'
 
 // =========================
 // PROJECTS
 // =========================
 
 async function apiFetchProjects() {
-  const res = await fetch('/api/projects/', {
-    headers: { ...getAuthHeaders() }
-  })
+  const res = await apiFetch('/api/projects/')
 
   if (!res.ok) throw new Error(await res.text())
   return await res.json()
 }
 
 async function apiCreateProject(projectName) {
-  const res = await fetch('/api/projects/create', {
+  const res = await apiFetch('/api/projects/create', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeaders()
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({ name: projectName })
   })
@@ -28,9 +25,8 @@ async function apiCreateProject(projectName) {
 }
 
 async function apiDeleteProject(project_id) {
-  const res = await fetch(`/api/projects/${project_id}/delete`, {
-    method: 'DELETE',
-    headers: { ...getAuthHeaders() }
+  const res = await apiFetch(`/api/projects/${project_id}/delete`, {
+    method: 'DELETE'
   })
 
   if (!res.ok) throw new Error(await res.text())
@@ -42,38 +38,31 @@ async function apiDeleteProject(project_id) {
 // =========================
 
 async function apiFetchProduct(product_id) {
-  const res = await fetch(`/api/products/get-product?product_id=${product_id}`, {
-    headers: { ...getAuthHeaders() }
-  })
+  const res = await apiFetch(`/api/products/get-product?product_id=${product_id}`)
 
   if (!res.ok) throw new Error(await res.text())
   return await res.json()
 }
 
 async function apiFetchAllProducts(projectId) {
-  const res = await fetch(`/api/products/get-all-products?project_id=${projectId}`, {
-    headers: { ...getAuthHeaders() }
-  })
+  const res = await apiFetch(`/api/products/get-all-products?project_id=${projectId}`)
 
   if (!res.ok) throw new Error(await res.text())
   return await res.json()
 }
 
 async function apiFetchAllPublishedProducts(projectId) {
-  const res = await fetch(`/api/products/get-all-published-products?project_id=${projectId}`, {
-    headers: { ...getAuthHeaders() }
-  })
+  const res = await apiFetch(`/api/products/get-all-published-products?project_id=${projectId}`)
 
   if (!res.ok) throw new Error(await res.text())
   return await res.json()
 }
 
 async function apiUpdateProduct(productId, product) {
-  const res = await fetch(`/api/products/update-product/${productId}`, {
+  const res = await apiFetch(`/api/products/update-product/${productId}`, {
     method: 'PUT',
     headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeaders()
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(product)
   })
@@ -86,11 +75,10 @@ async function apiUpdateProduct(productId, product) {
 }
 
 async function apiCreateProduct(product) {
-  const res = await fetch('/api/products/create-product', {
+  const res = await apiFetch('/api/products/create-product', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeaders()
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(product)
   })
@@ -100,9 +88,8 @@ async function apiCreateProduct(product) {
 }
 
 async function apiDeleteProduct(productId) {
-  const res = await fetch(`/api/products/delete-product/${productId}`, {
-    method: 'DELETE',
-    headers: { ...getAuthHeaders() }
+  const res = await apiFetch(`/api/products/delete-product/${productId}`, {
+    method: 'DELETE'
   })
 
   if (!res.ok) {
@@ -117,11 +104,8 @@ async function apiUploadProductImage(productId, file, altText = '') {
   formData.append('file', file)
   formData.append('alt_text', altText)
 
-  const res = await fetch(`/api/products/add-product-picture?product_id=${productId}`, {
+  const res = await apiFetch(`/api/products/add-product-picture?product_id=${productId}`, {
     method: 'POST',
-    headers: {
-      ...getAuthHeaders()
-    },
     body: formData
   })
 
@@ -138,13 +122,26 @@ async function apiFetchSecurityActivity(action = null) {
     const params = new URLSearchParams()
     if (action) params.set('action', action)
     
-    const res = await fetch(`/api/security/activity?${params}`, {
-        headers: getAuthHeaders()
-    })
+    const res = await apiFetch(`/api/security/activity?${params}`)
     if (!res.ok) throw new Error(await res.text())
     return res.json()
 }
 
+/**
+ * Check if the current user's vendor account has Stripe payments enabled (payouts_enabled)
+ * @returns {Promise<boolean>} true if enabled, false otherwise
+ */
+export async function apiVendorStripeEnabled() {
+  const res = await fetch('/api/vendors/me', {
+    method: 'GET',
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const vendor = await res.json();
+  return !!vendor.payouts_enabled;
+}
 
 
 

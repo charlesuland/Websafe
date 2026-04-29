@@ -1,24 +1,31 @@
 from app.database import SessionLocal
 
 from typing import Annotated
+from datetime import timezone
+import os
+import secrets
 from jose import JWTError, jwt
-from fastapi.security import OAuth2PasswordBearer
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status, Depends, Request
 from pydantic import BaseModel
 from app import models
 from sqlalchemy.orm import Session
+from sqlmodel import select
 from app.schemas import User, TokenData
 import boto3
 
-
-# These dependencies are what the routes will pull from
-# for ex., the functions will ask for a connection to the database; that comes from here
-
 ALGORITHM = "HS256"
 SECRET_KEY = "asdf"
+TOKEN_ISSUER = "websafe"
+ACCESS_COOKIE_NAME = "access_token"
+REFRESH_COOKIE_NAME = "refresh_token"
+CSRF_COOKIE_NAME = "csrf_token"
+CSRF_HEADER_NAME = "X-CSRF-Token"
+ACCESS_TOKEN_EXPIRES_MINUTES = 15
+REFRESH_TOKEN_EXPIRES_DAYS = 14
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
+COOKIE_SAMESITE = "lax"
 
 s3_base_url = "https://websafe.s3.us-east-2.amazonaws.com/"
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token")
 
 
 def get_s3_client():
@@ -58,7 +65,7 @@ def get_db():
 
 
 async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    request: Request,
     db: Annotated[Session, Depends(get_db)],
 ):
     credentials_exception = HTTPException(
@@ -66,27 +73,62 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    token = request.cookies.get(ACCESS_COOKIE_NAME)
+    token_from_cookie = token is not None
+
+    if not token:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header.split(" ", 1)[1].strip()
+
+    if not token:
+        raise credentials_exception
+
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username = payload.get("sub")
-        if username is None:
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+            issuer=TOKEN_ISSUER,
+        )
+        token_type = payload.get("type")
+        user_id = payload.get("sub")
+        if token_type != "access" or user_id is None:
             raise credentials_exception
-        token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user = (
-        db.query(models.User)
-        .filter(models.User.username == token_data.username)
-        .first()
-    )
+
+    if token_from_cookie:
+        validate_csrf(request)
+
+    try:
+        user = db.get(models.User, int(user_id))
+    except (TypeError, ValueError):
+        raise credentials_exception
+
     if user is None:
         raise credentials_exception
     return user
 
 
 async def get_current_active_user(
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[models.User, Depends(get_current_user)],
 ):
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+
+def validate_csrf(request: Request):
+    if request.method.upper() in {"GET", "HEAD", "OPTIONS", "TRACE"}:
+        return
+
+    csrf_cookie = request.cookies.get(CSRF_COOKIE_NAME)
+    csrf_header = request.headers.get(CSRF_HEADER_NAME)
+
+    if not csrf_cookie or not csrf_header:
+        raise HTTPException(status_code=403, detail="CSRF token missing")
+
+    if not secrets.compare_digest(csrf_cookie, csrf_header):
+        raise HTTPException(status_code=403, detail="CSRF token mismatch")

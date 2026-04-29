@@ -3,19 +3,16 @@
 #
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from app.routers import users, projects, subscriptions, security 
+from app.routers import users, projects, subscriptions, products, orders, vendors, checkout, security, webhooks, stripe_router
 from app import auth
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.routers.products import products_router
-from app.routers.orders import order_router
-from app.routers.vendors import vendor_router
+
+from dotenv import load_dotenv
 
 # necessary for the app to build the models
 import app.models
-
-#automatically creates tables that are added to models
-Base.metadata.create_all(bind=engine)
+load_dotenv('../.env')
 
 # this function happens on startup. Before the yield happens before the app runs
 # after the yield happens after the app shuts down
@@ -46,12 +43,11 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(projects.projects_router, prefix="/api")
 app.include_router(projects.public_router, prefix="/api")
-app.include_router(products_router, prefix="/api")
-app.include_router(order_router, prefix="/api")
-app.include_router(vendor_router, prefix="/api")
-app.include_router(security.router)
-
-from app.routers.checkout import checkout_router
-app.include_router(checkout_router, prefix="/api")
-
-
+app.include_router(products.products_router, prefix="/api")
+app.include_router(subscriptions.router, prefix="/api")
+app.include_router(orders.orders_router, prefix="/api")
+app.include_router(vendors.vendors_router, prefix="/api")
+app.include_router(checkout.checkout_router, prefix="/api")
+app.include_router(webhooks.webhooks_router, prefix="/api")
+app.include_router(security.router, prefix="/api")
+app.include_router(stripe_router.router, prefix="/api")
