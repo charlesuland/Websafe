@@ -210,8 +210,8 @@ class CustomerIn(BaseModel):
     last_name: str
     email: EmailStr
     phone: str
-    house_number: int
+    house_number: str
     street_name: str
     city: str
     state: str 
-    postal_code: int
+    postal_code: str

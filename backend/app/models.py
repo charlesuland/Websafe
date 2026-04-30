@@ -88,6 +88,7 @@ class Vendor(Base):
     stripe_connect_id: Mapped[Optional[str]] = mapped_column(nullable=True)
     payouts_enabled: Mapped[bool] = mapped_column(default=False)
     requirements_due_for_payment: Mapped[str]
+    shipping_price: Mapped[int] = mapped_column(default=0)
 
 
 class VendorAdress(Base):
@@ -146,7 +147,6 @@ class ProjectProduct(Base):
     name: Mapped[str]
     description: Mapped[str]
     sale_price: Mapped[int]
-    shipping_price: Mapped[int]
     currency: Mapped[str] = mapped_column(default="USD")
     is_published: Mapped[bool] = mapped_column(Boolean, default=False)
     stock: Mapped[int]
@@ -165,14 +165,14 @@ class ProductImage(Base):
 class ProjectOrder(Base):
     __tablename__ = "project_orders"
     stripe_id: Mapped[str]
-    item_price: Mapped[int]
-    #shipping_price: Mapped[int]
+    amount_total: Mapped[int]
     currency: Mapped[str] = mapped_column(default="USD")
     payment_status: Mapped[bool]
     project: Mapped[int] = mapped_column(ForeignKey("projects.id"))
     platform_fee_cents: Mapped[int]
     vendor_amount_cents: Mapped[int]
-    #meta: Mapped[dict] = mapped_column(JSON)
+    shipping_price_cents: Mapped[int] = mapped_column(default=0)
+
 
 
 class ShippingStatus(enum.Enum):
@@ -187,24 +187,22 @@ class ProjectOrderItem(Base):
     item: Mapped[int] = mapped_column(ForeignKey("project_products.id"))
     order: Mapped[int] = mapped_column(ForeignKey("project_orders.id"))
     price_at_purchase: Mapped[int]
-    tracking_number: Mapped[str]
     shipping_status: Mapped[ShippingStatus] = mapped_column(
         default=ShippingStatus.PENDING
     )
+    quantity: Mapped[int]
 
 
 class ProjectCustomer(Base):
     __tablename__ = "project_customers"
-
     order: Mapped[int] = mapped_column(ForeignKey("project_orders.id"))
-
     first_name: Mapped[str]
     last_name: Mapped[str]
     phone: Mapped[str]
     email: Mapped[str]
 
 
-class ProjectCustomerAdress(Base):
+class ProjectCustomerAddress(Base):
     __tablename__ = "project_customer_addresses"
     customer: Mapped[int] = mapped_column(ForeignKey("project_customers.id"))
     house_number: Mapped[int]

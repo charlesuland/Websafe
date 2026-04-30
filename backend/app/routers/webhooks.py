@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from app.stripe import construct_webhook_event, get_stripe_client
 from app.dependencies import get_db
 from sqlalchemy.orm import Session
-from app.models import ProjectOrder, Subscription, User
+from app.models import ProjectCustomer, ProjectCustomerAddress, ProjectOrder, ProjectOrderItem, ProjectProduct, Subscription, User
 from sqlmodel import select
 from datetime import datetime
 import json
@@ -136,37 +136,78 @@ async def handle_invoice_payment_failed(invoice_data, db: Session):
             subscription.status = 'PAST_DUE'
             db.commit()
 
-async def handle_checkout_session_completed(session_data, db: Session):
-    # You can handle post-checkout logic here, e.g., mark subscription as active
-    # create order
+
+
+async def handle_checkout_session_completed(session_data: dict, db = Session):
+    session_id = session_data.get('id')
     meta = session_data.get('metadata', {})
     project_id = meta.get('project_id')
 
-    # create order items
+    # 1. Create the parent Order record
     order = ProjectOrder(
         project=project_id,
-        stripe_id=session_data['id'],
+        stripe_id=session_id,
         amount_total=session_data['amount_total'],
         payment_status=True,
-        customer_email=session_data['customer_details']['email'],
-        item_price=session_data['amount_total'],
-        platform_fee_cents=session_data['application_fee_amount'],
-        vendor_amount_cents=session_data['amount_total'] - session_data['application_fee_amount'],
-
+        platform_fee_cents=round(session_data['amount_total'] * 0.07),
+        vendor_amount_cents=session_data['amount_total'] - round(session_data['amount_total'] * 0.07),
+        shipping_price_cents=meta.get('shipping_price_cents', 0)
     )
     db.add(order)
-    db.commit()
-    db.refresh(order)
+    # Flush ensures the order gets an ID from the DB before we create items
+    db.flush() 
 
-    for   
-    #create customer record
+    # 2. Retrieve the full list of items from Stripe
+    # This includes the products and the "Shipping" line item
+    items = meta.get("product_ids", "").split(",")
+    quantities = meta.get("quantities", "").split(",")
+    # 3. Create OrderItems for each product
+    
+    for i, item in enumerate(items):
+        # We skip the "Shipping" line item for the OrderItems table 
+        # since shipping is already tracked in the parent order amount
+        product = db.execute(select(ProjectProduct).where(ProjectProduct.id == int(item))).scalar_one_or_none()
+            
+        # Retrieve the internal product ID from the price metadata
+        # (Assuming you passed it in 'price_data' during session creation)
+        
+
         new_order_item = ProjectOrderItem(
             order=order.id,
-            item=item['id'],
-            quantity=item['quantity'],
-            price_at_purchase=item['price']
-            tracking_number="",
-            shipping_status=ShippingStatus.PENDING
+            item=int(product.id),
+            quantity=int(quantities[i]),
+            price_at_purchase=product.sale_price,
+            shipping_status="PENDING" # Using string if Enum isn't imported
         )
+        db.add(new_order_item)
+
+    # 4. Commit all changes at once
+    db.flush()
+    db.refresh(order)
+    
+
+    customer = json.loads(meta.get("customer", "{}"))
+    db_customer = ProjectCustomer(
+        order=order.id,
+        first_name=customer.get("first_name", ""),
+        last_name=customer.get("last_name", ""),
+        email=customer.get("email", ""),
+        phone=customer.get("phone", "")
+    )
+    db.add(db_customer)
+    db.flush()
+    db.refresh(db_customer)
+
+    address = json.loads(meta.get("customer", "{}"))
+    db_address = ProjectCustomerAddress(
+        customer=db_customer.id,
+        house_number=address.get("house_number", ""),
+        street_name=address.get("street_name", ""),
+        city=address.get("city", ""),
+        state=address.get("state", ""),
+        postal_code=address.get("postal_code", "")
+    )
+    db.add(db_address)
+    db.commit()
 
     pass

@@ -15,13 +15,9 @@
 
 <script setup>
 import { ref } from 'vue';
-
+import { apiFetch } from '../auth'
 // Props for vendor onboarding
 const props = defineProps({
-  email: {
-    type: String,
-    required: true
-  },
   country: {
     type: String,
     default: 'US'
@@ -34,19 +30,17 @@ const errorMessage = ref('');
 const handleCheckout = async () => {
   isLoading.value = true;
   errorMessage.value = '';
-  const token = localStorage.getItem('token');
 
   try {
-    const response = await fetch('/api/stripe/create-connect-account', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
+    const response = await apiFetch('/api/stripe/create-connect-account', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    
+  })
 
-      }),
-    });
+
     if (!response.ok) throw new Error('Network response was not ok');
 
     const data = await response.json();

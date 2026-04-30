@@ -45,7 +45,7 @@ function getPayload(source) {
     description: source.description,
 
     sale_price: Math.max(0, Math.round((source.sale_price || 0) * 100)),
-    shipping_price: Math.max(0, Math.round((source.shipping_price || 0) * 100)),
+    //shipping_price: Math.max(0, Math.round((source.shipping_price || 0) * 100)),
 
     alt_text: source.alt_text,
     stock: Math.max(0, parseInt(source.stock) || 0)
@@ -72,7 +72,7 @@ function openEdit(product, project) {
     ...product, 
     project_id: project.id,
     sale_price: (product.sale_price || 0) / 100,
-    shipping_price: (product.shipping_price || 0) / 100,
+    //shipping_price: (product.shipping_price || 0) / 100,
     stock: Math.max(0, product.stock || 0)
   }
 
@@ -275,7 +275,7 @@ function handleFileSelect(e) {
           />
         </label>
 
-        <label class="field-group">
+        <!-- <label class="field-group">
           <span class="edit-menu-field-header">Shipping Price ($)</span>
           <input
             type="number"
@@ -285,7 +285,7 @@ function handleFileSelect(e) {
             @input="clampPrice('shipping_price')"
             placeholder="Shipping Price ($)"
           />
-        </label>
+        </label> -->
 
         <label class="field-group">
           <span class="edit-menu-field-header">Stock Available</span>

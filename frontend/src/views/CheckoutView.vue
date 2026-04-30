@@ -44,30 +44,30 @@ async function placeOrder() {
   // when Charlie wires Stripe the payment_method field will be replaced
   // with a real Stripe PaymentMethod ID.
   const payload = {
-    project_id: parseInt(projectId.value),
+    //project_id: parseInt(projectId.value),
     items: cart.items.map(i => ({
       product_id: i.productId,
       quantity: i.quantity,
     })),
     customer: {
-      name: `${firstName.value.trim()} ${lastName.value.trim()}`,
+      first_name: firstName.value.trim(),
+      last_name: lastName.value.trim(),
       email: email.value.trim(),
       phone: phone.value.trim(),
-    },
-    // TODO (Charlie): replace "manual" with stripe_payment_method_id
-    payment_method: 'manual',
-    // Shipping address — backend stores this in meta.customer for now;
-    // expand the CheckoutCreateRequest schema when Stripe shipping is added.
-    shipping_address: {
-      line1: address.value.trim(),
+
+      house_number: address.value.trim().split(' ')[0], 
+      street_name: address.value.trim().split(' ').slice(1).join(' '),
       city: city.value.trim(),
       state: state.value.trim(),
       postal_code: zip.value.trim(),
     },
+
+
   }
 
   try {
-    const res = await fetch('/api/checkout/create', {
+    console.log("Checkout Payload:", payload)
+    const res = await fetch('/api/stripe/create-cart-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -79,8 +79,13 @@ async function placeOrder() {
     }
 
     const data = await res.json()
-    orderId.value = data.order_id
-    success.value = true
+    console.log("Checkout Response:", data)
+    if (data.url) {
+      window.location.href = data.url
+    } else {
+      throw new Error('No checkout URL received')
+    }
+
     cart.clearCart()
   } catch (e) {
     error.value = e.message

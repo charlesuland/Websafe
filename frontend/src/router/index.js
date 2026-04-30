@@ -68,7 +68,7 @@ const routes = [
     component: PublishedPage
   },
   {
-    path: '/checkout/:routerId',
+    path: '/checkout/:projectId',
     component: CheckoutView
   }
 ]

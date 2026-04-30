@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Depends, Body, Form, Request
-from app.dependencies import get_db, get_current_active_user, get_s3_client, s3_base_url, upload_image_to_s3
+from app.dependencies import get_current_user, get_db, get_current_active_user, get_s3_client, s3_base_url, upload_image_to_s3
 from app.activity_log import queue_security_event, describe_activity
 from app.models import ProjectProduct, MediaObjectMetadata, Project, DraftProjectPage, Vendor
 from sqlalchemy import update, select
@@ -20,7 +20,6 @@ class ProductIn(BaseModel):
     name: str
     description: str
     sale_price: int
-    shipping_price: int
     alt_text: str = ""
     stock: int
 
@@ -29,7 +28,7 @@ class ProductUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     sale_price: int | None = None
-    shipping_price: int | None = None
+
     stock: int | None = None
     alt_text: str | None = None
 
@@ -47,7 +46,7 @@ async def create_product(
     product_in: ProductIn,
     request: Request,
     db=Depends(get_db),
-    user=Depends(get_current_active_user),
+    user=Depends(get_current_user),
 ):
     require_project_owner(product_in.project_id, user.id, db)
 
@@ -258,7 +257,6 @@ def format_product(p: ProjectProduct, db):
         "name": p.name,
         "description": p.description,
         "sale_price": p.sale_price,
-        "shipping_price": p.shipping_price,
         "image_url": image_url,
         "alt_text": p.alt_text,
         "stock": p.stock,

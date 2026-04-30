@@ -1,9 +1,10 @@
+
 import json
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from pydantic import BaseModel
 from sqlmodel import select
-from app.dependencies import get_current_user, get_db
+from app.dependencies import get_current_active_user, get_current_user, get_db
 from app.models import DraftProjectPage, Project, ProjectProduct, User, Vendor
 from app.stripe import get_stripe_client
 import os
@@ -85,7 +86,7 @@ class ConnectAccountResponse(BaseModel):
 # Route to create a Stripe Connect account and onboarding link
 @router.post("/create-connect-account", response_model=ConnectAccountResponse)
 async def create_connect_account(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     db = Depends(get_db)
 ):
 
@@ -123,41 +124,85 @@ async def create_connect_account(
         print(f"Stripe error: {e.user_message}")
         raise HTTPException(status_code=400, detail=str(e))
     
+class CartItem(BaseModel):
+    product_id: int  # or str, depending on your DB
+    quantity: int
 
-class ProjectIdRequest(BaseModel):
-    project_id: int
 
+class CartCheckoutRequest(BaseModel):
+    #project_id: int
+    items: list[CartItem]
+    customer: CustomerIn
 @router.post("/create-cart-checkout")
-async def create_cart_checkout(project_id: ProjectIdRequest, customer: CustomerIn, cart_data: dict = Body(...), db = Depends(get_db)):
-    # Example cart_data: {"items": [{"id": "prod_1", "qty": 2, "price": 2000}, {"id": "prod_2", "qty": 1, "price": 1500}]}
-    vendor = await db.execute(
-        select(Vendor)
+async def create_cart_checkout(cart_data: CartCheckoutRequest, db = Depends(get_db)):
+    # 1. Await the execution to get the result object
+    first_product_id = cart_data.items[0].product_id
+    result = db.execute(
+        select(Project)
+        .join(ProjectProduct, Project.id == ProjectProduct.project_id)
+        .where(ProjectProduct.id == first_product_id)
+    )
+
+    # 2. Extract the Project object from the result
+    project_obj = result.scalar_one_or_none()
+
+    # 3. Safety check: Ensure the project exists before accessing .id
+    if project_obj:
+        project_id = project_obj.id
+    else:
+        raise HTTPException(status_code=404, detail="Project not found for this product")
+    customer = cart_data.customer
+    stripe_connect_id = db.execute(
+        select(Vendor.stripe_connect_id)
+        .join(Project, Vendor.id == Project.vendor).
+        where(Project.id == project_id)).scalar_one_or_none()
+    shipping_price = db.execute(
+        select(Vendor.shipping_price)
         .join(Project, Vendor.id == Project.vendor)
-        .join(ProjectProduct, ProjectProduct.project_id == Project.id)
-        .where(ProjectProduct.id == cart_data["items"][0]["id"])
-    ).scalars().first()
+        .where(Project.id == project_id)).scalar_one_or_none() or 0
     # this also needs to send a customer
-    stripe_connect_id = vendor.stripe_connect_id if vendor else None
+    
     if not stripe_connect_id:
         raise HTTPException(status_code=400, detail="Vendor does not have a Stripe Connect account")
     line_items = []
     internal_ids = []
-    total_amount = 0
+    quanties = []
+    total_amount = 0 
 
-    for item in cart_data["items"]:
+    for item in cart_data.items:
+        product_id = item.product_id
+
+        product = db.execute(select(ProjectProduct).where(ProjectProduct.id == product_id)).scalar_one_or_none()
+        if not product:
+            raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found") 
+        quantity = item.quantity
+        price = product.sale_price
         line_items.append({
             'price_data': {
                 'currency': 'usd',
                 'product_data': {
-                    'name': f"Product {item['id']}",
+                    'name': product.name,
+                    'description': product.description,
                 },
-                'unit_amount': item['price'],
+                'unit_amount': price,
             },
-            'quantity': item['qty'],
+            'quantity': quantity,
         })
         # Keep track of IDs to store in metadata
-        internal_ids.append(item['id'])
-        total_amount += item['price'] * item['qty']
+        internal_ids.append(product_id)
+        quanties.append(quantity)
+        total_amount += price * quantity
+
+    if shipping_price > 0:
+        line_items.append({
+            'price_data': {
+                'currency': 'usd',
+                'product_data': {'name': 'Shipping'},
+                'unit_amount': shipping_price,
+            },
+            'quantity': 1,
+        })
+        total_amount += shipping_price
 
     try:
         session = stripe.checkout.Session.create(
@@ -167,10 +212,11 @@ async def create_cart_checkout(project_id: ProjectIdRequest, customer: CustomerI
             # Stripe metadata has a 50-key limit and 500-character value limit.
             # For a cart, it's often best to pass a comma-separated string or a Cart ID.
             metadata={
-                "project_id": project_id.project_id,
-                "product_ids": ",".join(internal_ids),
-                "cart_id": cart_data.get("cart_id"),
+                "project_id": project_id,
+                "product_ids": ",".join(str(pid) for pid in internal_ids),
+                "quantities": ",".join(str(q) for q in quanties),
                 "customer": json.dumps(customer.model_dump()),
+                "shipping_price_cents": shipping_price,
             },
             # If splitting payment for the whole cart to ONE vendor:
             payment_intent_data={
@@ -180,6 +226,7 @@ async def create_cart_checkout(project_id: ProjectIdRequest, customer: CustomerI
             success_url="https://localhost:5173",
             cancel_url="https://localhost:5173",
         )
-        return {"url": session.url}
+        print("Stripe checkout session created:")
+        return CheckoutSessionResponse(url=session.url)
     except Exception as e:
         return {"error": str(e)}

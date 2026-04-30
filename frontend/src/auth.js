@@ -93,4 +93,5 @@ export {
   ensureAuthenticated,
   getCsrfToken,
   logoutSession,
+  getCookie
 }
