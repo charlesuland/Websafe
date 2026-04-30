@@ -127,7 +127,7 @@ function logout() {
           :class="{ active: activeTab === 'settings' }"
           @click="navigateTo('settings')"
         >
-          Settings
+          Website Project Settings
         </button>
 
         <button

@@ -1,99 +1,102 @@
 <template>
-  <div class="checkout-container">
-    <button 
-      :disabled="isLoading" 
+  <div class="card">
+    <h2>{{ name }}</h2>
+    <p class="description">{{ description }}</p>
+
+    <h3 class="price">{{ price }}</h3>
+
+    <ul>
+      <li v-for="(feature, i) in features" :key="i">
+        {{ feature }}
+      </li>
+    </ul>
+
+    <button
+      :disabled="isLoading"
       @click="handleCheckout"
       class="buy-button"
     >
       <span v-if="isLoading">Processing...</span>
       <span v-else>Buy Now</span>
     </button>
-    
+
     <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { apiFetch } from '@/auth'
+import { ref } from 'vue'
 
-// Props allow you to reuse this button for different subscription tiers
 const props = defineProps({
-  planId: {
-    type: String,
-    required: true
-  },
+  planId: { type: String, required: true },
+  name: String,
+  description: String,
+  price: String,
   successUrl: {
     type: String,
-    default: () => window.location.origin + '/success'
+    default: () => window.location.origin + '/dashboard'
   },
   cancelUrl: {
     type: String,
-    default: () => window.location.origin + '/cancel'
+    default: () => window.location.origin + '/dashboard'
   }
-});
+})
 
-const isLoading = ref(false);
-const errorMessage = ref('');
+const isLoading = ref(false)
+const errorMessage = ref('')
 
 const handleCheckout = async () => {
-  isLoading.value = true;
-  errorMessage.value = '';
-  const token = localStorage.getItem('token');
-  
+  isLoading.value = true
+  errorMessage.value = ''
+
   try {
-    const response = await fetch('/api/stripe/create-checkout-session', {
+    const response = await apiFetch('/api/stripe/create-checkout-session', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         plan_id: props.planId,
         success_url: props.successUrl,
         cancel_url: props.cancelUrl
-      }),
-    });
-    console.log("Checkout Response:", response);
-    if (!response.ok) throw new Error('Network response was not ok');
+      })
+    })
 
-    const { url } = await response.json();
+    if (!response.ok) throw new Error(await response.text())
 
-    // Redirect the user to Stripe's hosted page
-    if (url) {
-      window.location.href = url;
-    } else {
-      throw new Error('Failed to retrieve checkout URL');
-    }
+    const { url } = await response.json()
 
-  } catch (error) {
-    console.error("Checkout Error:", error);
-    errorMessage.value = "Something went wrong. Please try again.";
+    window.location.href = url
+  } catch (err) {
+    errorMessage.value = 'Checkout failed. Try again.'
+    console.error(err)
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-};
+}
 </script>
 
 <style scoped>
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  width: 280px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  text-align: left;
+}
+
+.price {
+  font-size: 22px;
+  margin: 10px 0;
+}
+
 .buy-button {
-  background-color: #635bff; /* Stripe Purple */
+  background: #635bff;
   color: white;
-  padding: 12px 24px;
+  padding: 10px;
   border: none;
-  border-radius: 4px;
-  font-weight: 600;
+  width: 100%;
+  border-radius: 6px;
   cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.buy-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.error {
-  color: #df1b41;
-  font-size: 0.9rem;
-  margin-top: 8px;
 }
 </style>

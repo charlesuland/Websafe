@@ -4,14 +4,14 @@ import { apiFetch } from '@/auth.js'
 // PROJECTS
 // =========================
 
-async function apiFetchProjects() {
+export async function apiFetchProjects() {
   const res = await apiFetch('/api/projects/')
 
   if (!res.ok) throw new Error(await res.text())
   return await res.json()
 }
 
-async function apiCreateProject(projectName) {
+export async function apiCreateProject(projectName) {
   const res = await apiFetch('/api/projects/create', {
     method: 'POST',
     headers: {
@@ -24,9 +24,34 @@ async function apiCreateProject(projectName) {
   return await res.json()
 }
 
-async function apiDeleteProject(project_id) {
+export async function apiDeleteProject(project_id) {
   const res = await apiFetch(`/api/projects/${project_id}/delete`, {
     method: 'DELETE'
+  })
+
+  if (!res.ok) throw new Error(await res.text())
+  return await res.json()
+}
+
+export async function apiSetProjectShippingPrice(projectId, price) {
+  const res = await apiFetch(`/api/projects/${projectId}/shipping-price`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ shipping_price: price })
+  })
+
+  if (!res.ok) throw new Error(await res.text())
+  return await res.json()
+}
+
+export async function apiGetProjectShippingPrice(projectId) {
+  const res = await apiFetch(`/api/projects/${projectId}/shipping-price`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    }
   })
 
   if (!res.ok) throw new Error(await res.text())
@@ -37,28 +62,28 @@ async function apiDeleteProject(project_id) {
 // PRODUCTS
 // =========================
 
-async function apiFetchProduct(product_id) {
+export async function apiFetchProduct(product_id) {
   const res = await apiFetch(`/api/products/get-product?product_id=${product_id}`)
 
   if (!res.ok) throw new Error(await res.text())
   return await res.json()
 }
 
-async function apiFetchAllProducts(projectId) {
+export async function apiFetchAllProducts(projectId) {
   const res = await apiFetch(`/api/products/get-all-products?project_id=${projectId}`)
 
   if (!res.ok) throw new Error(await res.text())
   return await res.json()
 }
 
-async function apiFetchAllPublishedProducts(projectId) {
+export async function apiFetchAllPublishedProducts(projectId) {
   const res = await apiFetch(`/api/products/get-all-published-products?project_id=${projectId}`)
 
   if (!res.ok) throw new Error(await res.text())
   return await res.json()
 }
 
-async function apiUpdateProduct(productId, product) {
+export async function apiUpdateProduct(productId, product) {
   const res = await apiFetch(`/api/products/update-product/${productId}`, {
     method: 'PUT',
     headers: {
@@ -74,7 +99,7 @@ async function apiUpdateProduct(productId, product) {
   return await res.json()
 }
 
-async function apiCreateProduct(product) {
+export async function apiCreateProduct(product) {
   const res = await apiFetch('/api/products/create-product', {
     method: 'POST',
     headers: {
@@ -87,7 +112,7 @@ async function apiCreateProduct(product) {
   return await res.json()
 }
 
-async function apiDeleteProduct(productId) {
+export async function apiDeleteProduct(productId) {
   const res = await apiFetch(`/api/products/delete-product/${productId}`, {
     method: 'DELETE'
   })
@@ -99,7 +124,7 @@ async function apiDeleteProduct(productId) {
   return await res.json()
 }
 
-async function apiUploadProductImage(productId, file, altText = '') {
+export async function apiUploadProductImage(productId, file, altText = '') {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('alt_text', altText)
@@ -118,7 +143,7 @@ async function apiUploadProductImage(productId, file, altText = '') {
 
 
 // function to fetch data from security/activity
-async function apiFetchSecurityActivity(action = null) {
+export async function apiFetchSecurityActivity(action = null) {
     const params = new URLSearchParams()
     if (action) params.set('action', action)
     
@@ -156,23 +181,12 @@ export async function setProjectSlug(projectId, slug) {
   return res.json()
 }
 
-export {
-    // Project APIs
-    apiFetchProjects,
-    apiCreateProject,
-    apiDeleteProject,
+export async function apiHasActiveSubscription() {
+  const res = await apiFetch('/api/subscriptions/me')
 
-    // Product APIs
-    apiFetchAllProducts,
-    apiFetchProduct,
-    apiFetchAllPublishedProducts,
-    apiUpdateProduct,
-    apiCreateProduct,
-    apiDeleteProduct,
+  if (!res.ok) return false
 
-    // Image APIs
-    apiUploadProductImage,
+  const hasSub = await res.json()
 
-    // Security Activity APIs
-    apiFetchSecurityActivity
+  return hasSub
 }

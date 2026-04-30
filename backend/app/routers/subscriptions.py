@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends
+from app.utils import is_subscription_active
 from sqlalchemy.orm import Session
-from app.dependencies import get_db
+from app.dependencies import get_current_user, get_db
 from app.models import Subscription, Plan, User
 from app.schemas import SubscriptionCreate, SubscriptionOut, PlanOut
 from app.stripe import create_customer, create_subscription as stripe_create_subscription, get_stripe_client
@@ -69,6 +70,9 @@ async def get_user_subscriptions(user_id: int, db: Session = Depends(get_db)):
     subscriptions = db.execute(select(Subscription).where(Subscription.user_id == user_id)).scalars().all()
     return subscriptions
 
+@router.get("/me")
+async def get_my_subscriptions(db: Session = Depends(get_db), user = Depends(get_current_user)):
+    return is_subscription_active(db, user.id)
 
 @router.put("/{subscription_id}", response_model=SubscriptionOut)
 async def update_subscription(subscription_id: int, status: str, db: Session = Depends(get_db)):
