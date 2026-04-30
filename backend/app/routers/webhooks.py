@@ -65,12 +65,27 @@ async def handle_account_updated(account_data, db: Session):
 
             
 async def handle_subscription_created(subscription_data, db: Session):
+
+    print(subscription_data)
+
     stripe_sub_id = subscription_data['id']
     user_stripe_id = subscription_data['customer']
     status = subscription_data.get('status', '').upper()
     
-    current_period_start_ts = subscription_data.get('current_period_start')
-    current_period_end_ts = subscription_data.get('current_period_end')
+
+    items = subscription_data.get('items', {}).get('data', [])
+    first_item = items[0] if items else {}
+
+    current_period_start_ts = (
+        first_item.get('current_period_start') or 
+        subscription_data.get('current_period_start') or 
+        subscription_data.get('created')
+    )
+
+    current_period_end_ts = (
+        first_item.get('current_period_end') or 
+        subscription_data.get('current_period_end')
+    )
 
     current_period_start = datetime.fromtimestamp(current_period_start_ts) if current_period_start_ts else None
     current_period_end = datetime.fromtimestamp(current_period_end_ts) if current_period_end_ts else None
