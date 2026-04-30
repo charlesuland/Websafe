@@ -81,4 +81,8 @@ const handleCheckout = async () => {
   font-size: 0.9rem;
   margin-top: 8px;
 }
+
+.checkout-container {
+  margin-bottom: 24px;
+}
 </style>

@@ -6,7 +6,6 @@ import {
   apiCreateProject,
   apiDeleteProject
 } from '@/DatabaseFunctions.js'
-import CreateConnectCard from '@/components/CreateConnectCard.vue'
 
 
 
@@ -83,7 +82,6 @@ function parseServerDate(value) {
 </script>
 
 <template>
-  <CreateConnectCard />
   <main class="dashboard-content" aria-labelledby="projects-title">
     <header class="content-header">
       <div>

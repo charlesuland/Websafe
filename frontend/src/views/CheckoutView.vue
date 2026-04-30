@@ -182,17 +182,6 @@ function continueShopping() {
           </div>
         </div>
 
-        <!-- Payment placeholder -->
-        <div class="form-block payment-block">
-          <h3 class="block-title">Payment</h3>
-          <div class="stripe-placeholder">
-            <div class="stripe-icon">💳</div>
-            <div>
-              <p class="stripe-label">Stripe Payment</p>
-              <p class="stripe-sub">Secure payment processing will be available here once Stripe integration is complete.</p>
-            </div>
-          </div>
-        </div>
 
         <!-- Error -->
         <div v-if="error" class="error-banner" role="alert">{{ error }}</div>
@@ -391,19 +380,7 @@ function continueShopping() {
   box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
 }
 
-/* ── payment placeholder ──────────────────────────── */
-.payment-block { border: 2px dashed #d1d5db; background: #f9fafb; }
 
-.stripe-placeholder {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-}
-
-.stripe-icon { font-size: 2rem; }
-
-.stripe-label { font-size: 0.9rem; font-weight: 600; color: #374151; margin: 0 0 4px; }
-.stripe-sub { font-size: 0.8rem; color: #6b7280; margin: 0; line-height: 1.5; }
 
 /* ── error ────────────────────────────────────────── */
 .error-banner {
