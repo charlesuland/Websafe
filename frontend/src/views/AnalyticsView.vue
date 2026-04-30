@@ -43,7 +43,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import Chart from 'chart.js/auto';
 import { apiFetch } from '../auth.js';
 
@@ -186,41 +186,97 @@ onMounted(fetchData);
 </script>
 
 <style scoped>
-.dashboard-container { padding: 2rem; background: #f9fafb; min-height: 100vh; }
-.db-header { display: flex; justify-content: space-between; margin-bottom: 2rem; }
+.dashboard-container {
+  padding: 2rem 2.5rem 3rem;
+  min-height: 100vh;
+  color: #d8e4f2;
+}
 
-.metrics-grid { 
-  display: grid; 
-  grid-template-columns: repeat(4, 1fr); 
-  gap: 1.5rem; 
-  margin-bottom: 2rem; 
+.db-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
 }
-.metric-card { 
-  background: white; 
-  padding: 1.5rem; 
-  border-radius: 12px; 
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
-}
-.metric-card label { color: #6b7280; font-size: 0.875rem; font-weight: 600; }
-.metric-card .value { font-size: 1.5rem; font-weight: 700; margin-top: 0.5rem; color: #111827; }
 
-.charts-grid { 
-  display: grid; 
-  grid-template-columns: 2fr 1fr; 
-  gap: 1.5rem; 
+.db-header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #f8fbff;
 }
-.chart-container { 
-  background: white; 
-  padding: 1.5rem; 
-  border-radius: 12px; 
-  height: 400px; 
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+
+.refresh-btn {
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  border: 1px solid #4283d8;
+  background: #1964d5;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
 }
-.refresh-btn { 
-  background: #111827; 
-  color: white; 
-  padding: 0.5rem 1rem; 
-  border-radius: 6px; 
-  cursor: pointer; 
+
+.refresh-btn:hover {
+  background: #2464d9;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 2rem;
+}
+
+.metric-card {
+  background: linear-gradient(180deg, #132031 0%, #0f1825 100%);
+  border: 1px solid #2a3d58;
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.22);
+}
+
+.metric-card label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #b9cadd;
+  text-transform: uppercase;
+}
+
+.metric-card .value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-top: 6px;
+  color: #f8fbff;
+}
+
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+
+.chart-container {
+  background: linear-gradient(180deg, #132031 0%, #0f1825 100%);
+  border: 1px solid #2a3d58;
+  border-radius: 16px;
+  padding: 1.25rem;
+  padding-bottom: 3rem;
+  height: 380px;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.22);
+}
+
+.chart-container h3 {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #b9cadd;
+}
+
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #c6d4e5;
 }
 </style>

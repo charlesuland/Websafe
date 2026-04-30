@@ -146,11 +146,9 @@ const selectStyle = computed(() => {
 <style scoped>
 .navbar {
   width: 100%;
-  border-radius: 5px;
   display: flex;
   justify-content: center;
   gap: 10px;
-  padding: 10px;
   align-items: center;
 }
 

@@ -67,7 +67,7 @@ function autoResize(e) {
   height: 100%;
   width: 100%;
   position: relative;
-  border-radius: 10px;
+  border-radius: 5px;
   border-color: black;
   border-width: 30px;
   border: solid;

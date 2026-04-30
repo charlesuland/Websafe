@@ -50,13 +50,7 @@ watch([() => route.params.projectSlug, () => route.params.pageName], loadPage)
 
 <template>
   <div class="published-site">
-    <header class="site-header" v-if="!isShopPage">
-      <div class="header-content">
-        <div class="site-badge">
-          <strong>{{ projectName || 'Published Site' }}</strong>
-        </div>
-      </div>
-    </header>
+  
 
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>

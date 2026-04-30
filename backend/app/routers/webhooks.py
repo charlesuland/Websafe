@@ -71,7 +71,7 @@ async def handle_subscription_created(subscription_data, db: Session):
     stripe_sub_id = subscription_data['id']
     user_stripe_id = subscription_data['customer']
     status = subscription_data.get('status', '').upper()
-    
+
 
     items = subscription_data.get('items', {}).get('data', [])
     first_item = items[0] if items else {}

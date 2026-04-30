@@ -147,12 +147,15 @@ async def create_cart_checkout(cart_data: CartCheckoutRequest, db = Depends(get_
 
     # 2. Extract the Project object from the result
     project_obj = result.scalar_one_or_none()
-
+    site_url = ""
     # 3. Safety check: Ensure the project exists before accessing .id
     if project_obj:
         project_id = project_obj.id
+        site_url = project_obj.slug
     else:
         raise HTTPException(status_code=404, detail="Project not found for this product")
+    
+    
     customer = cart_data.customer
     stripe_connect_id = db.execute(
         select(Vendor.stripe_connect_id)
@@ -225,8 +228,8 @@ async def create_cart_checkout(cart_data: CartCheckoutRequest, db = Depends(get_
                 "application_fee_amount": round(total_amount*.07), # your total platform fee
                 "transfer_data": {"destination": stripe_connect_id},
             },
-            success_url="https://localhost:5173",
-            cancel_url="https://localhost:5173",
+            success_url=f"http://localhost:5173/site/{site_url}/Shop",
+            cancel_url=f"http://localhost:5173/site/{site_url}/Shop",
         )
         print("Stripe checkout session created:")
         return CheckoutSessionResponse(url=session.url)

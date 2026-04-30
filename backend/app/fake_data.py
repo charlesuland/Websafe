@@ -19,7 +19,8 @@ def seed_orders(db: Session, num_orders=20):
     print(f"Starting to seed {num_orders} orders...")
 
     # 1. Get existing projects and products to link to
-    project = db.query(Project).join(Vendor, Project.vendor == Vendor.id).join(User, Vendor.owner == User.id).where(User.email == "charlieuland@icloud.com").first()
+    project = db.query(Project).join(Vendor, Project.vendor == Vendor.id).join(User, Vendor.owner == User.id).where(User.email == "jared@sandfoss.net").first()
+    
     products = db.query(ProjectProduct).where(ProjectProduct.project_id == project.id).all()
 
 

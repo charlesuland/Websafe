@@ -4,7 +4,6 @@
     <HeroSection />
     <FeatureSection />
     <HowItWorksSection />
-    <PricingSection />
   </main>
   <Footer />
 </template>
@@ -15,7 +14,6 @@ import Navbar from "../components/NavBar.vue"
 import HeroSection from "../components/HeroSection.vue";
 import FeatureSection from "@/components/FeatureSection.vue";
 import HowItWorksSection from "@/components/HowItWorksSection.vue";
-import PricingSection from "@/components/PricingSection.vue";
 import Footer from "../components/Footer.vue"
 
 </script>

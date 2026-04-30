@@ -119,18 +119,32 @@ async function publishLayout() {
 }
 
 async function captureCanvas() {
-  if (!canvasRef.value)
-    return null
+  if (!canvasRef.value) return null
 
-  const canvasImage = await html2canvas(canvasRef.value, {
+  const element = canvasRef.value
+
+  // Force scroll to top BEFORE capture (important)
+  const originalScrollTop = element.scrollTop
+  element.scrollTop = 0
+
+  const canvasImage = await html2canvas(element, {
     useCORS: true,
-    x: 0,
-    y: 0,
-    windowWidth: canvasRef.value.Width,
-    windowHeight: 400
+    backgroundColor: "#ffffff",
+
+    scale: 3,
+
+    // IMPORTANT: use full scroll size ONLY
+    width: element.scrollWidth,
+    height: element.scrollHeight,
+
+    windowWidth: element.scrollWidth,
+    windowHeight: element.scrollHeight
   })
 
-  return canvasImage.toDataURL('image/png')
+  // restore scroll
+  element.scrollTop = originalScrollTop
+
+  return canvasImage.toDataURL("image/png")
 }
 
 async function exitEditor() {
@@ -237,6 +251,7 @@ onUnmounted(() => {
 
   height: 100vh;
   width: 100vw;
+  overflow: hidden;
 }
 
 .topbar {
@@ -272,6 +287,9 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   padding: 20px;
+
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .canvas-wrapper {

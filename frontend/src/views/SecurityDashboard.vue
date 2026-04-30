@@ -1,7 +1,6 @@
 <template>
   <main class="security-page" aria-labelledby="security-title">
     <header class="page-header">
-      <button class="back-btn" type="button" @click="router.back()">Back</button>
       <div>
         <h1 id="security-title">Security</h1>
         <p class="sub">Monitor account authentication, project, and product activity.</p>

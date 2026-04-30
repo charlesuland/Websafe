@@ -77,26 +77,80 @@ const handleCheckout = async () => {
 
 <style scoped>
 .card {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  width: 280px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  background: linear-gradient(180deg, #132031 0%, #0f1825 100%);
+  border: 1px solid #2a3d58;
+  border-radius: 16px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 320px;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.25);
   text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #f8fbff;
+}
+
+.description {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #b8cade;
 }
 
 .price {
-  font-size: 22px;
-  margin: 10px 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+  color: #74a0ff;
+}
+
+ul {
+  padding-left: 18px;
+  margin: 0.5rem 0 1rem;
+  color: #d8e4f2;
+  font-size: 0.9rem;
+}
+
+li {
+  margin-bottom: 4px;
 }
 
 .buy-button {
-  background: #635bff;
-  color: white;
-  padding: 10px;
-  border: none;
-  width: 100%;
-  border-radius: 6px;
+  margin-top: auto;
+  background: #1964d5;
+  border: 1px solid #4283d8;
+  color: #ffffff;
+  padding: 0.75rem;
+  border-radius: 10px;
+  font-weight: 700;
   cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.buy-button:hover:not(:disabled) {
+  background: #2464d9;
+}
+
+.buy-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #f87171;
 }
 </style>

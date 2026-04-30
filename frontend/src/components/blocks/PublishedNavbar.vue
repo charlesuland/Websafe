@@ -76,6 +76,7 @@ const navbarStyle = computed(() => {
 .published-navbar {
   width: 100%;
   height: 100%;
+  border-radius: 5px;
   padding: 15px 0;
   border-bottom: 1px solid #e0e0e0;
   display: flex;
