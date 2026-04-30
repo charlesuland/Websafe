@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 # necessary for the app to build the models
 import app.models
-load_dotenv('../.env')
+load_dotenv()   # Docker sets env vars directly; this is fine as a fallback
 
 # this function happens on startup. Before the yield happens before the app runs
 # after the yield happens after the app shuts down
@@ -32,7 +32,14 @@ app = FastAPI(lifespan=lifespan)
 # When the application is expanded, the list of hosts (origins) may need to increase
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176"],
+    allow_origins=[
+    "http://localhost:5173",   # local dev (Vite)
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://localhost:5176",
+    "http://localhost",        # Docker frontend (port 80)
+    "http://localhost:5173",   # Docker frontend mapped to 5173
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
