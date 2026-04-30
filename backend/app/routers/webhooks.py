@@ -66,7 +66,7 @@ async def handle_account_updated(account_data, db: Session):
             
 async def handle_subscription_created(subscription_data, db: Session):
 
-    print(subscription_data)
+
 
     stripe_sub_id = subscription_data['id']
     user_stripe_id = subscription_data['customer']
