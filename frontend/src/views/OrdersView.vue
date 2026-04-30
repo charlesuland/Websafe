@@ -91,7 +91,7 @@ const fetchOrders = async () => {
     const response = await apiFetch('/api/orders/');
     if (!response.ok) throw new Error('Failed to fetch orders');
     const data = await response.json();
-    orders.value = data.orders; // Assuming your API returns { orders: [...] }
+    orders.value = data.orders;
   } catch (error) {
     console.error("Error fetching orders:", error);
   } finally {
