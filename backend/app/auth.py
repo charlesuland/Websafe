@@ -24,6 +24,8 @@ from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordRequestForm
 from app import models
 from app.activity_log import log_and_commit_security_event
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 import logging
 
 logger = logging.getLogger(__name__)
@@ -33,6 +35,9 @@ router = APIRouter(
 )
 
 pwd_context = CryptContext(schemes=["argon2"])
+
+# Rate limiter for login attempts
+limiter = Limiter(key_func=get_remote_address)
 
 
 def verify_password(plain_password: str, hashed_password: str):
@@ -116,6 +121,7 @@ def clear_auth_cookies(response: Response):
 
 # function to log security event in database
 @router.post("/token")
+@limiter.limit("5/minute")
 async def login_for_access_token(
     request: Request,
     response: Response,

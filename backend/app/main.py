@@ -9,6 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 
 from dotenv import load_dotenv
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 # necessary for the app to build the models
 import app.models
@@ -27,6 +31,12 @@ async def lifespan(app: FastAPI):
 
 # instantiates FastAPI object application
 app = FastAPI(lifespan=lifespan)
+
+# Rate limiting setup
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # allows methods to be called from the frontend application
 # When the application is expanded, the list of hosts (origins) may need to increase
