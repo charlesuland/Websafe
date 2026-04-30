@@ -27,6 +27,8 @@ function navigateTo(tab) {
     router.push('/dashboard')
   } else if (tab === 'products') {
     router.push('/dashboard/products')
+  } else if (tab === 'orders') {
+    router.push('/dashboard/orders')
   } else if (tab === 'analytics') {
     // Future analytics page
   } else if (tab === 'settings') {
@@ -60,6 +62,7 @@ function closePicker() {
   if (!path.startsWith('/dashboard/settings')) {
     activeTab.value = path === '/dashboard' ? 'projects'
       : path === '/dashboard/products' ? 'products'
+      : path === '/dashboard/orders' ? 'orders'
       : path === '/dashboard/security' ? 'security'
       : 'projects'
   }
@@ -72,6 +75,8 @@ onMounted(() => {
     activeTab.value = 'projects'
   else if (path === '/dashboard/products')
     activeTab.value = 'products'
+  else if (path === '/dashboard/orders')
+    activeTab.value = 'orders'
   else if (path === '/dashboard/security')
     activeTab.value = 'security'
   else if (path === '/dashboard/settings')
@@ -127,6 +132,13 @@ function logout() {
           @click="navigateTo('products')"
         >
           E-Commerce Products
+        </button>
+
+        <button
+          :class="{ active: activeTab === 'orders' }"
+          @click="navigateTo('orders')"
+        >
+          Orders
         </button>
 
         <button

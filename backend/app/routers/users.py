@@ -65,7 +65,7 @@ async def register_user(user_in: UserIn, db=Depends(get_db)):
     user_data = user_in.model_dump(exclude={"plain_password"})
     new_user = User(**user_data)
     new_user.hash_password = hashed_pwd
-    new_user.stripe_customer_id = "test"
+    new_user.stripe_customer_id = None
     db.add(new_user)
     db.commit()
 

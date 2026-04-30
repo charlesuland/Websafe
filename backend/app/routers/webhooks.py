@@ -54,7 +54,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 async def handle_account_updated(account_data, db: Session):
     # Stripe Connect account id
     stripe_connect_id = account_data['id']
-    payouts_enabled = account_data.get('payouts_enabled', False)
+    payouts_enabled = account_data.payouts_enabled if hasattr(account_data, 'payouts_enabled') else False
 
     # Find the vendor with this Stripe Connect ID
     vendor = db.execute(select(Vendor).where(Vendor.stripe_connect_id == stripe_connect_id)).scalar_one_or_none()
@@ -139,6 +139,9 @@ async def handle_invoice_payment_failed(invoice_data, db: Session):
 
 
 async def handle_checkout_session_completed(session_data: dict, db = Session):
+    if session_data.get('mode') == 'subscription':
+        # Handle subscription checkout completion if needed
+        pass
     session_id = session_data.get('id')
     meta = session_data.get('metadata', {})
     project_id = meta.get('project_id')

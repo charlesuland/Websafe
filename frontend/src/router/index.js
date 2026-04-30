@@ -12,6 +12,7 @@ import SecurityDashboard from '@/views/SecurityDashboard.vue'
 import AboutUsView from '@/views/AboutUsView.vue'
 
 import SettingsView from '@/views/SettingsView.vue'
+import OrdersView from '@/views/OrdersView.vue'
 import { ensureAuthenticated } from '@/auth.js'
 
 import CheckoutView from '@/views/CheckoutView.vue'
@@ -47,6 +48,10 @@ const routes = [
       {
         path: 'products',
         component: ProductsView
+      },
+      {
+        path: 'orders',
+        component: OrdersView
       },
       {
         path: 'security',

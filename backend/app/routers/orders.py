@@ -2,12 +2,13 @@
 
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from typing import List
 
 from app.dependencies import get_db, get_current_user
-from app.models import ProjectOrder, ProjectCustomer, ProjectOrderItem, Project, Vendor
+from app.models import ProjectCustomerAddress, ProjectOrder, ProjectCustomer, ProjectOrderItem, Project, ProjectProduct, Vendor
 from app.schemas import OrderOut, OrderCreate, User
 
 orders_router = APIRouter(prefix="/orders", tags=["Orders"])
@@ -60,35 +61,62 @@ async def get_project_orders(
     return db.execute(stmt).scalars().all()
 
 
-@orders_router.post("/make-order", status_code=status.HTTP_201_CREATED)
-async def make_order(order_data: OrderCreate, db: Session = Depends(get_db)):
-    """
-    Public endpoint. Anyone can place an order.
-    We just need to verify the project_id exists.
-    """
-    # Check if the project exists before allowing an order
-    project = db.get(Project, order_data.project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+class CustomerOut(BaseModel):
+    first_name: str
+    last_name: str
+    phone: str
+    email: str
+    line: str
+    city: str
+    state: str
+    postal_code: str
+class ItemOut(BaseModel):
+    id: int
+    name: str
+    price_at_purchase: int
+    shipping_status: str
+    quantity: int
+class OrderOut(BaseModel):
+    id: int
+    amount_total: int
 
-    try:
-        new_order = ProjectOrder(project=order_data.project_id)
-        db.add(new_order)
-        db.flush()
+    vendor_amount_cents: int
+    shipping_price_cents: int
+    items: List[ItemOut]
+    customer: CustomerOut
 
-        for p_id in order_data.product_ids:
-            db.add(ProjectOrderItem(order_id=new_order.id, product_id=p_id))
 
-        db.add(
-            ProjectCustomer(
-                order=new_order.id,
-                email=order_data.customer_info.email,
-                name=order_data.customer_info.name,
-            )
-        )
+class AllOrderOut(BaseModel):
+    orders: List[OrderOut]
 
-        db.commit()
-        return {"status": "success", "order_id": new_order.id}
-    except Exception:
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Order processing failed")
+
+
+@orders_router.get("/", response_model=AllOrderOut, status_code=status.HTTP_200_OK)
+async def list_orders(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Verify ownership of the project before creating the order
+    stmt = (
+        select(ProjectOrder)
+        .join(Project, ProjectOrder.project == Project.id)
+        .join(Vendor, Project.vendor == Vendor.id)
+        .where(Vendor.owner == current_user.id)
+    )
+    projectOrder = db.execute(stmt).scalars().all()
+    all_orders = []
+    for order in projectOrder:
+        items = db.execute(select(ProjectOrderItem).where(ProjectOrderItem.order == order.id)).scalars().all()
+        customer = db.execute(select(ProjectCustomer).where(ProjectCustomer.order == order.id)).scalars().first()
+        customer_address = db.execute(select(ProjectCustomerAddress).where(ProjectCustomerAddress.customer == customer.id)).scalars().first()
+        items_out = []
+        for item in items:
+            item_name = db.execute(select(ProjectProduct.name).where(ProjectProduct.id == item.id)).scalar_one_or_none() or "Unknown Product"
+            items_out.append(ItemOut(name=item_name, id=item.id, price_at_purchase=item.price_at_purchase, shipping_status=item.shipping_status, quantity=item.quantity))
+        customer_out = CustomerOut(first_name=customer.first_name, last_name=customer.last_name, phone=customer.phone, email=customer.email, line=str(customer_address.house_number) + " " + customer_address.street_name, city=customer_address.city, state=customer_address.state, postal_code=str(customer_address.postal_code))
+        order_out = OrderOut(id=order.id, amount_total=order.amount_total, vendor_amount_cents=order.vendor_amount_cents, shipping_price_cents=order.shipping_price_cents, items=items_out, customer=customer_out)
+        all_orders.append(order_out)
+    print(all_orders)
+    if not all_orders:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No orders found for this user")
+    return AllOrderOut(orders=all_orders)
