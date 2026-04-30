@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Request
 from fastapi.responses import StreamingResponse
-from app.dependencies import get_db, get_current_user, get_s3_client, s3_base_url, upload_image_to_s3
+from app.dependencies import get_db, get_current_user, get_s3_client, require_active_subscription, s3_base_url, upload_image_to_s3
 from app.activity_log import queue_security_event, describe_activity
 from app.models import (
     Project,
@@ -9,7 +9,7 @@ from app.models import (
     DraftProjectPage,
     MediaObjectMetadata,
     ProjectProduct,
-    ProductImage
+    Subscription
 )
 from app.utils import slugify
 from fastapi import Depends
@@ -21,6 +21,7 @@ import base64
 import mimetypes
 import copy
 from pathlib import Path
+from app import models
 from sqlmodel import select
 from sqlalchemy import update
 from urllib.parse import quote
@@ -42,6 +43,9 @@ class ProjectIn(BaseModel):
 
 class SlugUpdate(BaseModel):
     slug: str
+
+class ShippingPriceUpdate(BaseModel):
+    shipping_price: float
 
 
 def build_media_proxy_url(file_key: str) -> str:
@@ -246,7 +250,16 @@ async def get_draft_pages(project_id: int, db=Depends(get_db), user=Depends(get_
 
 
 @projects_router.post("/{project_id}/publish")
-async def publish_project(project_id: int, request: Request, db=Depends(get_db), user=Depends(get_current_user)):
+async def publish_project(
+    project_id: int,
+    request: Request, 
+    db=Depends(get_db),
+    user=Depends(get_current_user), 
+    subscription=Depends(require_active_subscription)
+):
+    if not subscription or subscription.current_period_end < datetime.utcnow():
+        raise HTTPException(status_code=403, detail="Active subscription required")
+
     project = db.get(Project, project_id)
 
     if not project:
@@ -406,6 +419,52 @@ async def get_project_slug(project_id: int, db=Depends(get_db), user=Depends(get
         "slug": project.slug,
         "url": f"/site/{project.slug}" if project.slug else None
     }
+
+@projects_router.put("/{project_id}/shipping-price")
+async def set_project_shipping_price(
+    project_id: int,
+    payload: ShippingPriceUpdate,
+    db=Depends(get_db),
+    user=Depends(get_current_user)
+):
+    project = db.get(Project, project_id)
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    vendor = db.execute(
+        select(Vendor).where(Vendor.owner == user.id)
+    ).scalar_one_or_none()
+
+    if not vendor or project.vendor != vendor.id:
+        raise HTTPException(status_code=403, detail="Not your project")
+
+    db.execute(
+        update(Vendor)
+        .where(Vendor.id == project.vendor)
+        .values(shipping_price=payload.shipping_price)
+    )
+
+    db.commit()
+
+    return {"shipping_price": payload.shipping_price}
+
+@projects_router.get("/{project_id}/shipping-price")
+async def get_project_shipping_price(
+    project_id: int,
+    db=Depends(get_db),
+    user=Depends(get_current_user)
+):
+    project = db.get(Project, project_id)
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    vendor = db.execute(
+        select(Vendor).where(Vendor.owner == user.id)
+    ).scalar_one_or_none()
+
+    return {"shipping_price": vendor.shipping_price}
 
 
 @projects_router.put("/{project_id}/slug")

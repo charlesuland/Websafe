@@ -10,6 +10,7 @@ import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
 import html2canvas from 'html2canvas'
 import { apiFetch } from '@/auth'
+import { apiHasActiveSubscription } from '@/DatabaseFunctions.js'
 
 const route = useRoute()
 const projectId = route.params.projectId
@@ -83,10 +84,20 @@ async function publishLayout() {
   savingState.value = 'saving'
 
   store.updateCurrentPageLayout()
+
   const draftSaved = await saveDraft({ showStatus: false })
   if (!draftSaved) {
     savingState.value = null
     alert('Unable to save draft before publishing.')
+    return
+  }
+
+  const hasSubscription = await apiHasActiveSubscription()
+
+  if (!hasSubscription) {
+    alert('You need an active subscription to publish your site. Redirecting to subscriptions page.')
+    savingState.value = null
+    router.push('/subscriptions')
     return
   }
 
@@ -97,7 +108,7 @@ async function publishLayout() {
   if (!res.ok) {
     console.error('Publish failed', await res.text())
     savingState.value = null
-    alert('Publish failed. Please try again.')
+    alert(`Publish failed, ${await res.text()}`)
     return
   }
 

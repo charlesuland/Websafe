@@ -1,6 +1,6 @@
 <script setup>
-import { ref, watch, computed, onMounted } from 'vue'
-import { getProjectSlug, setProjectSlug } from '@/DatabaseFunctions'
+import { ref, computed, onMounted } from 'vue'
+import { apiSetProjectShippingPrice, apiGetProjectShippingPrice, getProjectSlug, setProjectSlug } from '@/DatabaseFunctions'
 
 const props = defineProps({
   projectId: { type: Number, required: true },
@@ -12,6 +12,7 @@ const currentSlug = ref(null)
 const saving = ref(false)
 const errorMsg = ref('')
 const successMsg = ref('')
+const shippingPrice = ref('0.00')
 
 // Live preview of what the URL will look like after slugification
 const slugPreview = computed(() => {
@@ -32,14 +33,42 @@ const previewUrl = computed(() =>
 const isChanged = computed(() => slugPreview.value && slugPreview.value !== currentSlug.value)
 
 onMounted(async () => {
-  try {
-    const data = await getProjectSlug(props.projectId)
-    currentSlug.value = data.slug
-    inputVal.value = data.slug || ''
-  } catch {
-    // no slug set yet, fine
-  }
+  const data = await getProjectSlug(props.projectId)
+  currentSlug.value = data.slug
+  inputVal.value = data.slug || ''
+
+  const shipping = await apiGetProjectShippingPrice(props.projectId)
+  shippingPrice.value = (shipping.shipping_price / 100).toFixed(2)
 })
+
+function clampPrice(value) {
+  const num = Number(value)
+
+  if (isNaN(num) || num < 0) return 0
+
+  return Math.round(num * 100) / 100
+}
+
+async function saveShippingPrice(price) {
+  const dollars = clampPrice(price)
+  const cents = Math.round(dollars * 100)
+
+  try {
+    const res = await apiSetProjectShippingPrice(
+      props.projectId,
+      cents
+    )
+
+    shippingPrice.value = (res.shipping_price / 100).toFixed(2)
+
+    successMsg.value = 'Shipping price saved!'
+    setTimeout(() => (successMsg.value = ''), 3000)
+
+  } catch (err) {
+    errorMsg.value = 'Error saving shipping price'
+    console.error(err)
+  }
+}
 
 async function save() {
   if (!isChanged.value) return
@@ -93,6 +122,23 @@ async function save() {
     >
       {{ saving ? 'Saving...' : 'Save URL' }}
     </button>
+
+    <div class="shipping-price-container">
+      <p class="shipping-price-label">Set store shipping price ($)</p>
+      <input
+        v-model="shippingPrice"
+        type="number"
+        step="0.01"
+        placeholder="0.00"
+        @blur="shippingPrice = clampPrice(shippingPrice).toFixed(2)"
+      />
+    </div>
+    <button
+      class="slug-save"
+      @click="saveShippingPrice(shippingPrice)"
+    >
+      Save shipping price
+    </button>
   </div>
 </template>
 
@@ -107,13 +153,22 @@ async function save() {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #475569;
+  color: #84a2c9;
+  margin-bottom: 4px;
+}
+
+.shipping-price-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #252d37;
   margin-bottom: 4px;
 }
 
 .slug-hint {
   font-size: 0.88rem;
-  color: #64748b;
+  color: #7993b8;
   margin-bottom: 14px;
 }
 
@@ -129,7 +184,7 @@ async function save() {
 .slug-prefix {
   padding: 9px 10px 9px 14px;
   font-size: 0.88rem;
-  color: #94a3b8;
+  color: #343941;
   background: #f8fafc;
   border-right: 1px solid #e2e8f0;
   white-space: nowrap;
@@ -149,11 +204,11 @@ async function save() {
 .slug-preview {
   margin-top: 8px;
   font-size: 0.82rem;
-  color: #64748b;
+  color: #7993b8;
 }
 
 .slug-preview a {
-  color: #2563eb;
+  color: #6c9bff;
   text-decoration: none;
 }
 
@@ -193,5 +248,23 @@ async function save() {
 
 .slug-save:not(:disabled):hover {
   background: #1d4ed8;
+}
+
+.shipping-price-container {
+  display: flex;
+  flex-direction: column;
+  margin-top: 30px;
+  padding: 20px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.shipping-price-input {
+  margin-top: 8px;
+  padding: 9px 12px;
+  font-size: 0.92rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
 }
 </style>

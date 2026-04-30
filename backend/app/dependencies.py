@@ -1,7 +1,7 @@
 from app.database import SessionLocal
 
 from typing import Annotated
-from datetime import timezone
+from datetime import datetime, timezone
 import os
 import secrets
 from jose import JWTError, jwt
@@ -118,6 +118,18 @@ async def get_current_active_user(
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+
+async def require_active_subscription(current_user=Depends(get_current_active_user), db=Depends(get_db)):
+    subscription = db.execute(
+        select(models.Subscription).where(
+            models.Subscription.user_id == current_user.id,
+            models.Subscription.current_period_end > datetime.utcnow()
+        )
+    ).scalar_one_or_none()
+    if not subscription:
+        raise HTTPException(status_code=403, detail="Active subscription required")
+    return subscription
 
 
 def validate_csrf(request: Request):

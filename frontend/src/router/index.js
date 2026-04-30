@@ -17,6 +17,7 @@ import OrdersView from '@/views/OrdersView.vue'
 import { ensureAuthenticated } from '@/auth.js'
 
 import CheckoutView from '@/views/CheckoutView.vue'
+import BuySubscriptionPage from '@/views/BuySubscriptionPage.vue'
 
 
 
@@ -80,6 +81,9 @@ const routes = [
   {
     path: '/checkout/:projectId',
     component: CheckoutView
+  }, {
+    path: '/subscriptions/',
+    component: BuySubscriptionPage
   }
 ]
 const router = createRouter({

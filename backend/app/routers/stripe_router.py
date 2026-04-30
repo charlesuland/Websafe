@@ -133,6 +133,8 @@ class CartCheckoutRequest(BaseModel):
     #project_id: int
     items: list[CartItem]
     customer: CustomerIn
+
+    
 @router.post("/create-cart-checkout")
 async def create_cart_checkout(cart_data: CartCheckoutRequest, db = Depends(get_db)):
     # 1. Await the execution to get the result object

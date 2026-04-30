@@ -96,7 +96,7 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str, 
         max_age=REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60,
     )
 
-    # Set CSRF token cookie (not HttpOnly)
+    # Set CSRF token cookie
     response.set_cookie(
         key=CSRF_COOKIE_NAME,
         value=csrf_token,
@@ -158,12 +158,13 @@ async def login_for_access_token(
         request=request,
     )
 
-    refresh_jti = str(uuid.uuid4())
     access_token = create_jwt_token(
         user_id=user.id,
         token_type="access",
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRES_MINUTES),
     )
+
+    refresh_jti = str(uuid.uuid4())
     refresh_token = create_jwt_token(
         user_id=user.id,
         token_type="refresh",
@@ -184,6 +185,7 @@ async def login_for_access_token(
     db.commit()
 
     set_auth_cookies(response, access_token, refresh_token, csrf_token)
+    
     return {
         "status": "authenticated",
         "user": {

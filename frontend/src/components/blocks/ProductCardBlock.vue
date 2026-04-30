@@ -42,7 +42,6 @@ const props = defineProps({
   }
 })
 
-
 const cart = useCartStore()
 const router = useRouter()
 const added = ref(false)
@@ -127,7 +126,7 @@ function goToCheckout() {
 .product-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .product-image-placeholder {

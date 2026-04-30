@@ -129,12 +129,10 @@ class ProjectPage(Base):
 class SecurityLog(Base):
     __tablename__ = "security_logs"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
     action: Mapped[str] = mapped_column(nullable=False)
     details: Mapped[str] = mapped_column(nullable=True)
     ip_address: Mapped[str] = mapped_column(nullable=True)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
     user: Mapped[Optional["User"]] = relationship("User", back_populates="security_logs")
   
@@ -152,14 +150,6 @@ class ProjectProduct(Base):
     stock: Mapped[int]
     product_image: Mapped[int] = mapped_column(ForeignKey("media_object_metadata.id"), nullable=True)
     alt_text: Mapped[str] = mapped_column(default="")
-
-# Might not use this, not implemented yet
-class ProductImage(Base):
-    __tablename__ = "product_images"
-
-    product_id: Mapped[int] = mapped_column(ForeignKey("project_products.id"), index=True)
-    file_key: Mapped[str]
-    position: Mapped[int]
 
 
 class ProjectOrder(Base):

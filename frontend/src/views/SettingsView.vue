@@ -1,6 +1,6 @@
 <template>
   <div class="settings-view">
-    <h1 class="settings-title">Settings</h1>
+    <h1 class="settings-title">Website Project Settings</h1>
     <SlugSetting :projectId="Number(route.params.projectId)" />
   </div>
 </template>
@@ -21,7 +21,7 @@ const route = useRoute()
 .settings-title {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #111;
+  color: #ffffff;
   margin-bottom: 32px;
 }
 </style>
