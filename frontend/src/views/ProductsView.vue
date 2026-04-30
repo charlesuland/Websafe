@@ -11,6 +11,7 @@ import {
 } from '@/DatabaseFunctions.js'
 import router from '@/router'
 import ProductCard from '@/components/ProductCard.vue'
+import CreateConnectCard from '@/components/CreateConnectCard.vue'
 
 const projectsWithProducts = ref([])
 const loading = ref(true)
@@ -18,6 +19,7 @@ const selectedFile = ref(null)
 const editingProduct = ref(null)
 const showEditMenu = ref(false)
 const currentImagePreview = ref(null)
+const vendorPayoutsEnabled = ref(false)
 
 onMounted(async () => {
   try {
@@ -36,6 +38,12 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+
+  const vendorRes = await apiFetch('/api/vendors/me')
+  if (vendorRes.ok) {
+    const vendor = await vendorRes.json()
+    vendorPayoutsEnabled.value = vendor.payouts_enabled
+}
 })
 
 function getPayload(source) {
@@ -158,6 +166,11 @@ async function saveProduct() {
 }
 
 async function togglePublished(product) {
+  if (!vendorPayoutsEnabled.value) {
+    alert('You must connect a Stripe account before publishing products.')
+    return
+  }
+
   const newStatus = !product.is_published
 
   await apiFetch(`/api/products/${product.id}/toggle-published`, {
@@ -200,6 +213,7 @@ function handleFileSelect(e) {
 
 <template>
   <main class="products-content" aria-labelledby="products-title">
+    <CreateConnectCard />
     <header class="content-header">
       <div>
         <h2 id="products-title">Products</h2>
