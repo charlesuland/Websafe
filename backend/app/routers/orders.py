@@ -112,8 +112,8 @@ async def list_orders(
         customer_address = db.execute(select(ProjectCustomerAddress).where(ProjectCustomerAddress.customer == customer.id)).scalars().first()
         items_out = []
         for item in items:
-            item_name = db.execute(select(ProjectProduct.name).where(ProjectProduct.id == item.id)).scalar_one_or_none() or "Unknown Product"
-            items_out.append(ItemOut(name=item_name, id=item.id, price_at_purchase=item.price_at_purchase, shipping_status=item.shipping_status, quantity=item.quantity))
+            item_name = db.execute(select(ProjectProduct.name).where(ProjectProduct.id == item.item)).scalar_one_or_none() or "Unknown Product"
+            items_out.append(ItemOut(name=item_name, id=item.item, price_at_purchase=item.price_at_purchase, shipping_status=item.shipping_status, quantity=item.quantity))
         customer_out = CustomerOut(first_name=customer.first_name, last_name=customer.last_name, phone=customer.phone, email=customer.email, line=str(customer_address.house_number) + " " + customer_address.street_name, city=customer_address.city, state=customer_address.state, postal_code=str(customer_address.postal_code))
         order_out = OrderOut(
             id=order.id,
@@ -125,7 +125,6 @@ async def list_orders(
             customer=customer_out,
         )
         all_orders.append(order_out)
-    print(all_orders)
     if not all_orders:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No orders found for this user")
     return AllOrderOut(orders=all_orders)

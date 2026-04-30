@@ -5,7 +5,7 @@ from sqlmodel import SQLModel
 
 # name of sqlite file being made for the database
 import os
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./main.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///main.db")
 
 
 # Create SQLAlchemy engine
