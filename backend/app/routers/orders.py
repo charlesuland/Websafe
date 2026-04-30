@@ -5,10 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import select
+from datetime import datetime
 from typing import List
 
 from app.dependencies import get_db, get_current_user
-from app.models import ProjectCustomerAddress, ProjectOrder, ProjectCustomer, ProjectOrderItem, Project, ProjectProduct, Vendor
+from app.models import ProjectCustomerAddress, ProjectOrder, ProjectCustomer, ProjectOrderItem, Project, ProjectProduct, Vendor, ShippingStatus
 from app.schemas import OrderOut, OrderCreate, User
 
 orders_router = APIRouter(prefix="/orders", tags=["Orders"])
@@ -79,7 +80,7 @@ class ItemOut(BaseModel):
 class OrderOut(BaseModel):
     id: int
     amount_total: int
-
+    created_at: datetime
     vendor_amount_cents: int
     shipping_price_cents: int
     items: List[ItemOut]
@@ -114,9 +115,46 @@ async def list_orders(
             item_name = db.execute(select(ProjectProduct.name).where(ProjectProduct.id == item.id)).scalar_one_or_none() or "Unknown Product"
             items_out.append(ItemOut(name=item_name, id=item.id, price_at_purchase=item.price_at_purchase, shipping_status=item.shipping_status, quantity=item.quantity))
         customer_out = CustomerOut(first_name=customer.first_name, last_name=customer.last_name, phone=customer.phone, email=customer.email, line=str(customer_address.house_number) + " " + customer_address.street_name, city=customer_address.city, state=customer_address.state, postal_code=str(customer_address.postal_code))
-        order_out = OrderOut(id=order.id, amount_total=order.amount_total, vendor_amount_cents=order.vendor_amount_cents, shipping_price_cents=order.shipping_price_cents, items=items_out, customer=customer_out)
+        order_out = OrderOut(
+            id=order.id,
+            amount_total=order.amount_total,
+            created_at=order.created_at,
+            vendor_amount_cents=order.vendor_amount_cents,
+            shipping_price_cents=order.shipping_price_cents,
+            items=items_out,
+            customer=customer_out,
+        )
         all_orders.append(order_out)
     print(all_orders)
     if not all_orders:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No orders found for this user")
     return AllOrderOut(orders=all_orders)
+
+
+@orders_router.patch("/update-shipping-status/{item_id}")
+async def update_shipping_status(item_id: int, status_update: dict, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    item = db.execute(select(ProjectOrderItem).where(ProjectOrderItem.id == item_id)).scalar_one_or_none()
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order item not found")
+    
+    # Verify ownership through the chain: Item -> Order -> Project -> Vendor -> User
+    order = db.execute(select(ProjectOrder).where(ProjectOrder.id == item.order)).scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    
+    project = db.execute(select(Project).where(Project.id == order.project)).scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    
+    vendor = db.execute(select(Vendor).where(Vendor.id == project.vendor)).scalar_one_or_none()
+    if not vendor or vendor.owner != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to update this item")
+
+    # Update the shipping status
+    new_status = status_update.get("status")
+    if new_status not in ["PENDING", "SHIPPED", "DELIVERED"]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid shipping status")
+    
+    item.shipping_status = new_status
+    db.commit()
+    return {"message": f"Shipping status updated to {new_status}"}

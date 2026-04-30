@@ -10,6 +10,7 @@ import EditorView from '@/views/EditorView.vue'
 
 import SecurityDashboard from '@/views/SecurityDashboard.vue'
 import AboutUsView from '@/views/AboutUsView.vue'
+import AnalyticsView from '@/views/AnalyticsView.vue'
 
 import SettingsView from '@/views/SettingsView.vue'
 import OrdersView from '@/views/OrdersView.vue'
@@ -52,6 +53,10 @@ const routes = [
       {
         path: 'orders',
         component: OrdersView
+      },
+      {
+        path: 'analytics',
+        component: AnalyticsView
       },
       {
         path: 'security',

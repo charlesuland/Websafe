@@ -30,7 +30,7 @@ function navigateTo(tab) {
   } else if (tab === 'orders') {
     router.push('/dashboard/orders')
   } else if (tab === 'analytics') {
-    // Future analytics page
+    router.push('/dashboard/analytics')
   } else if (tab === 'settings') {
     openProjectPicker()
   } else if (tab === 'security') {
@@ -63,6 +63,7 @@ function closePicker() {
     activeTab.value = path === '/dashboard' ? 'projects'
       : path === '/dashboard/products' ? 'products'
       : path === '/dashboard/orders' ? 'orders'
+      : path === '/dashboard/analytics' ? 'analytics'
       : path === '/dashboard/security' ? 'security'
       : 'projects'
   }
@@ -77,6 +78,8 @@ onMounted(() => {
     activeTab.value = 'products'
   else if (path === '/dashboard/orders')
     activeTab.value = 'orders'
+  else if (path === '/dashboard/analytics')
+    activeTab.value = 'analytics'
   else if (path === '/dashboard/security')
     activeTab.value = 'security'
   else if (path === '/dashboard/settings')

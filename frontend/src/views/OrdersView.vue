@@ -6,8 +6,11 @@
 
     <div v-else class="order-card" v-for="order in orders" :key="order.id">
       <div class="order-header">
-        <h3>Order #{{ order.id }}</h3>
-        <span class="total-badge">${{ (order.amount_total / 100).toFixed(2) }}</span>
+        <div>
+          <h3>Order #{{ order.id }}</h3>
+          <p class="order-date">Placed {{ formatDate(order.created_at) }}</p>
+        </div>
+        <span class="total-badge">${{ (order.vendor_amount_cents / 100).toFixed(2) }}</span>
       </div>
 
       <div class="details-grid">
@@ -39,7 +42,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(item, index) in order.items" :key="item.id">
+          <tr v-for="(item, index) in order.items" :key="index">
             <td>{{ item.name }}</td>
             <td>{{ item.quantity }}</td>
             <td>${{ (item.price_at_purchase / 100).toFixed(2) }}</td>
@@ -52,7 +55,6 @@
                 <option value="pending">Pending</option>
                 <option value="shipped">Shipped</option>
                 <option value="delivered">Delivered</option>
-                <option value="cancelled">Cancelled</option>
               </select>
             </td>
           </tr>
@@ -70,6 +72,18 @@ import {apiFetch} from '../auth.js';
 const orders = ref([]);
 const loading = ref(true);
 
+const formatDate = (value) => {
+  if (!value) return ''
+  const date = new Date(value)
+  return date.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 // Fetch data from your FastAPI endpoint
 const fetchOrders = async () => {
   try {
@@ -86,23 +100,34 @@ const fetchOrders = async () => {
 };
 
 // Handle editing the shipping status
-const updateShippingStatus = async (orderId, item) => {
+const updateShippingStatus = async (itemId) => {
+  // Find the item in the orders data
+  let targetItem = null;
+  for (const order of orders.value) {
+    targetItem = order.items.find(item => item.id === itemId);
+    if (targetItem) break;
+  }
+  if (!targetItem) {
+    console.error("Item not found");
+    return;
+  }
+
   try {
-    console.log(`Updating Order ${orderId}, Item ${item.name} to ${item.shipping_status}`);
-    // Example API call:
-    // await axios.patch(`/orders/${orderId}/items`, { 
-    //   status: item.shipping_status,
-    //   item_name: item.name 
-    // });
-    const response = await apiFetch(`/api/orders/${orderId}/${item}`, {
+
+
+    const response = await apiFetch(`/api/orders/update-shipping-status/${itemId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        status: item.shipping_status,
-        item_name: item.name 
+        status: targetItem.shipping_status.toUpperCase(),
       })
     });
-    alert(`Status updated to ${item.shipping_status}`);
+
+    if (!response.ok) {
+      throw new Error('Failed to update shipping status');
+    }
+
+
   } catch (error) {
     console.error("Failed to update status:", error);
   }
@@ -120,8 +145,7 @@ onMounted(fetchOrders);
   padding: 1.5rem;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-.order-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; margin-bottom: 1rem; }
-.total-badge { background: #4caf50; color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
+.order-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; margin-bottom: 1rem; }  .order-date { color: #6b7280; font-size: 0.9rem; margin: 6px 0 0; }.total-badge { background: #4caf50; color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
 .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 1rem; }
 .items-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
 .items-table th, .items-table td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }

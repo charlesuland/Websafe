@@ -29,10 +29,10 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         subscription_data = event['data']['object'].to_dict()
         await handle_subscription_created(subscription_data, db)
     elif event['type'] == 'customer.subscription.updated':
-        subscription_data = event['data']['object']
+        subscription_data = event['data']['object'].to_dict()
         await handle_subscription_updated(subscription_data, db)
     elif event['type'] == 'customer.subscription.deleted':
-        subscription_data = event['data']['object']
+        subscription_data = event['data']['object'].to_dict()
         await handle_subscription_deleted(subscription_data, db)
     elif event['type'] == 'invoice.payment_succeeded':
         invoice_data = event['data']['object'].to_dict()
@@ -47,7 +47,6 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         session_data = event['data']['object'].to_dict()
         await handle_checkout_session_completed(session_data, db)
     else:
-
         pass
     return {"status": "success"}
 
@@ -70,9 +69,8 @@ async def handle_subscription_created(subscription_data, db: Session):
     user_stripe_id = subscription_data['customer']
     status = subscription_data.get('status', '').upper()
     
-    current_period_start_ts = subscription_data["items"]["data"][0].get('current_period_start')
-    current_period_end_ts = subscription_data["items"]["data"][0].get('current_period_end')
-    #plan_id = subscription_data['plan']['id'] if subscription_data.get('plan') else None
+    current_period_start_ts = subscription_data.get('current_period_start')
+    current_period_end_ts = subscription_data.get('current_period_end')
 
     current_period_start = datetime.fromtimestamp(current_period_start_ts) if current_period_start_ts else None
     current_period_end = datetime.fromtimestamp(current_period_end_ts) if current_period_end_ts else None
@@ -85,8 +83,8 @@ async def handle_subscription_created(subscription_data, db: Session):
     # Check if subscription already exists
     existing = db.execute(select(Subscription).where(Subscription.stripe_subscription_id == stripe_sub_id)).scalar_one_or_none()
     if not existing:
+        print(f"Creating subscription for user {user.id} with Stripe subscription ID {stripe_sub_id}")
         subscription = Subscription(
-            #plan_id=None,  # Optionally map Stripe plan_id to your local plan
             user_id=user.id,
             current_period_start=current_period_start,
             current_period_end=current_period_end,
@@ -138,10 +136,11 @@ async def handle_invoice_payment_failed(invoice_data, db: Session):
 
 
 
-async def handle_checkout_session_completed(session_data: dict, db = Session):
+async def handle_checkout_session_completed(session_data: dict, db: Session):
     if session_data.get('mode') == 'subscription':
-        # Handle subscription checkout completion if needed
-        pass
+        # For subscriptions, don't create an order - subscription is handled separately
+        return {"status": "subscription handled"}
+    
     session_id = session_data.get('id')
     meta = session_data.get('metadata', {})
     project_id = meta.get('project_id')
