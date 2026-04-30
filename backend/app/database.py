@@ -4,7 +4,10 @@ from datetime import datetime
 from sqlmodel import SQLModel
 
 # name of sqlite file being made for the database
-DATABASE_URL = "sqlite:///./main.db"
+import os
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./main.db")
+
+
 # Create SQLAlchemy engine
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 

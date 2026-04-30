@@ -1,0 +1,26 @@
+services:
+
+  backend:
+    build: ./backend
+    container_name: websafe-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    volumes:
+      - sqlite-data:/app/data
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    container_name: websafe-frontend
+    restart: unless-stopped
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  sqlite-data:
